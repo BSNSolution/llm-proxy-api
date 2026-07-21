@@ -1,0 +1,52 @@
+{
+  "name": "llm-proxy-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn your installed AI coding CLIs into an OpenAI/Anthropic-compatible API. Self-hosted.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BSNSolution/llm-proxy-api.git"
+  },
+  "homepage": "https://github.com/BSNSolution/llm-proxy-api#readme",
+  "bugs": {
+    "url": "https://github.com/BSNSolution/llm-proxy-api/issues"
+  },
+  "keywords": [
+    "llm",
+    "proxy",
+    "openai-compatible",
+    "anthropic",
+    "self-hosted",
+    "claude-code",
+    "codex",
+    "ai-cli"
+  ],
+  "packageManager": "pnpm@11.5.0",
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=11"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "node apps/api/dist/main.js",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint -- --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "test": "turbo run test",
+    "db:generate": "pnpm --filter @llm-proxy/db run generate",
+    "db:migrate": "pnpm --filter @llm-proxy/db run migrate",
+    "db:studio": "pnpm --filter @llm-proxy/db run studio",
+    "docker:dev": "docker compose -f infra/compose/docker-compose.dev.yml up -d",
+    "docker:dev:down": "docker compose -f infra/compose/docker-compose.dev.yml down"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.3"
+  }
+}

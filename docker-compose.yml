@@ -1,0 +1,83 @@
+# =====================================================================
+# LLM Proxy API — stack self-hosted (app + Postgres + Redis).
+# Compatível com `docker compose up`, Dokploy, EasyPanel e similares
+# (basta apontar o repositório; este arquivo é detectado na raiz).
+#
+# Primeiro acesso: abra a URL do app e crie a conta de administrador.
+#
+# ⚠️ O proxy roda as SUAS LLM CLIs (claude, codex, …). Para o proxy/chat
+#    funcionarem dentro do container, as CLIs precisam estar disponíveis e
+#    logadas no ambiente do container — monte os diretórios de credencial
+#    como volumes (ex.: ~/.codex, ~/.claude, ~/.gemini) e garanta os binários
+#    no PATH da imagem. O painel, login e gestão funcionam sem isso.
+# ⚠️ NUNCA exponha o proxy cru na internet pública (dá acesso às suas
+#    assinaturas de LLM). Use tailnet (Tailscale) ou HTTPS + firewall.
+# =====================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: llm-proxy-api:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: 8787
+      API_HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-llmproxy}:${POSTGRES_PASSWORD:-llmproxy}@postgres:5432/${POSTGRES_DB:-llmproxy}?schema=public
+      REDIS_URL: redis://redis:6379
+      DATA_DIR: /data
+      IMAGES_DIR: /data/images
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8787}
+      # SESSION_SECRET: definido automaticamente (persistido em /data). Opcional sobrescrever.
+      # ADMIN_EMAIL / ADMIN_PASSWORD: opcionais (senão, cria admin no 1º acesso).
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    ports:
+      - '${APP_PORT:-8787}:8787'
+    volumes:
+      - llm-proxy-data:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "fetch(''http://127.0.0.1:8787/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-llmproxy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-llmproxy}
+      POSTGRES_DB: ${POSTGRES_DB:-llmproxy}
+    volumes:
+      - llm-proxy-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-llmproxy}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - llm-proxy-redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  llm-proxy-data: # session secret + imagens geradas (persiste em rebuild)
+  llm-proxy-pgdata:
+  llm-proxy-redisdata:

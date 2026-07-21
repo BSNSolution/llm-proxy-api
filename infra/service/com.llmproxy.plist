@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  LaunchAgent (macOS) para subir o llm-proxy-api no login do usuário.
+  Instalar: copie para ~/Library/LaunchAgents/ e ajuste os caminhos {{...}}.
+    cp infra/service/com.llmproxy.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.llmproxy.plist
+  Roda no contexto do usuário (precisa das CLIs + OAuth logados).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <key>Label</key>
+    <string>com.llmproxy</string>
+    <key>ProgramArguments</key>
+    <array>
+      <string>{{NODE_PATH}}</string>
+      <string>{{APP_DIR}}/apps/api/dist/main.js</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>{{APP_DIR}}</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+      <key>NODE_ENV</key>
+      <string>production</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>{{APP_DIR}}/llm-proxy-api.log</string>
+    <key>StandardErrorPath</key>
+    <string>{{APP_DIR}}/llm-proxy-api.err.log</string>
+  </dict>
+</plist>

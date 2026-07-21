@@ -1,0 +1,43 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+
+# env
+.env
+.env.*
+!.env.example
+
+# prisma
+packages/db/prisma/*.db
+packages/db/prisma/migrations/dev.db*
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor / os
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# runtime temp (uploads materializados p/ @path)
+tmp/
+.tmp/
+
+# coverage / test
+coverage/
+generated-images/
+
+# dados persistentes locais (secret de sessão auto-gerado, etc.)
+.data/
+
+# notas internas de desenvolvimento (não vão para o repo público)
+AI/

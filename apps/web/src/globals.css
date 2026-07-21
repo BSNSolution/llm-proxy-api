@@ -1,0 +1,138 @@
+/* Fontes: Geist (UI) + Geist Mono (código/números) — caráter técnico, não genérico. */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;450;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design system "dev-tool premium" (Linear/Vercel/Railway).
+ * Tokens semânticos como CSS vars (RGB space-separated p/ <alpha-value>).
+ * Accent #552BD7 (roxo) como accent único, sobre um dark quase-preto.
+ */
+:root {
+  color-scheme: dark;
+
+  /* superfícies — escala de elevação (quase-preto → cards) */
+  --bg: 8 8 11; /* #08080B base */
+  --surface: 13 13 17; /* #0D0D11 painel */
+  --surface-2: 20 20 26; /* #14141A card */
+  --surface-3: 28 28 36; /* #1C1C24 hover/elevado */
+  --border: 32 33 41; /* #202129 sutil */
+  --border-strong: 48 49 60; /* #30313C */
+
+  /* texto */
+  --fg: 237 238 242; /* quase branco, não puro */
+  --fg-muted: 148 150 160; /* secundário */
+  --fg-subtle: 96 98 108; /* terciário/placeholder */
+
+  /* accent (roxo) */
+  --primary: 124 74 246; /* #7C4AF6 — um pouco mais claro p/ contraste no dark */
+  --primary-fg: 255 255 255;
+  --primary-soft: 124 74 246; /* usado com /alpha p/ fundos suaves */
+
+  /* estados */
+  --ok: 52 199 123; /* #34C77B */
+  --warn: 245 176 66; /* #F5B042 */
+  --err: 244 87 87; /* #F45757 */
+  --info: 96 165 250;
+
+  /* raios e sombras */
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow: 0 4px 16px rgb(0 0 0 / 0.35);
+  --shadow-lg: 0 12px 40px rgb(0 0 0 / 0.45);
+  --shadow-glow: 0 0 0 1px rgb(var(--primary) / 0.35), 0 8px 30px rgb(var(--primary) / 0.18);
+}
+
+* {
+  border-color: rgb(var(--border));
+}
+
+html,
+body {
+  margin: 0;
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+  font-family:
+    'Geist',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-feature-settings: 'cv01', 'cv03', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* fundo com atmosfera: grão sutil + glow radial no topo */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(60rem 40rem at 50% -20%, rgb(var(--primary) / 0.06), transparent 70%),
+    radial-gradient(40rem 30rem at 100% 0%, rgb(var(--primary) / 0.03), transparent 60%);
+  pointer-events: none;
+}
+
+/* números tabulares por padrão em elementos monoespaçados */
+.font-mono {
+  font-family: 'Geist Mono', ui-monospace, monospace;
+  font-feature-settings: 'tnum';
+}
+
+/* scrollbar refinada */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--border-strong));
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--fg-subtle));
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* seleção */
+::selection {
+  background: rgb(var(--primary) / 0.35);
+  color: rgb(var(--fg));
+}
+
+/* foco visível consistente e acessível */
+:focus-visible {
+  outline: 2px solid rgb(var(--primary) / 0.6);
+  outline-offset: 2px;
+}
+
+/* animações utilitárias */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

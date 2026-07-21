@@ -1,0 +1,24 @@
+# systemd user service (Linux) para o llm-proxy-api.
+# Roda como serviço DO USUÁRIO (precisa das CLIs + OAuth logados no home do usuário).
+# Instalar:
+#   mkdir -p ~/.config/systemd/user
+#   cp infra/service/llm-proxy-api.service ~/.config/systemd/user/
+#   # edite os caminhos {{...}} abaixo
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now llm-proxy-api
+#   loginctl enable-linger $USER   # p/ subir sem sessão aberta
+
+[Unit]
+Description=LLM Proxy API
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={{APP_DIR}}
+ExecStart={{NODE_PATH}} {{APP_DIR}}/apps/api/dist/main.js
+Environment=NODE_ENV=production
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
