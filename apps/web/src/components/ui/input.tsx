@@ -92,15 +92,19 @@ export function Field({
   children: ReactNode;
   className?: string;
 }) {
+  // hint em TEXTO vira legenda abaixo do campo; hint como elemento (ex.: <HintTip/>)
+  // fica ao lado do label, que é o uso original do ícone de ajuda.
+  const hintIsText = typeof hint === 'string' || typeof hint === 'number';
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       {label && (
         <div className="flex items-center gap-1.5">
           <Label>{label}</Label>
-          {hint}
+          {!hintIsText && hint}
         </div>
       )}
       {children}
+      {hintIsText && <p className="text-xs text-fg-subtle">{hint}</p>}
       {error && <p className="text-xs text-err">{error}</p>}
     </div>
   );
