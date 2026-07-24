@@ -66,6 +66,7 @@ export function registerOpenAiRoutes(app: FastifyInstance): void {
         thinking: body.reasoning_effort ? body.reasoning_effort !== 'none' : undefined,
         timeoutMs: key.timeoutMs,
       }),
+      key,
     );
 
     const id = `chatcmpl-${randomUUID()}`;

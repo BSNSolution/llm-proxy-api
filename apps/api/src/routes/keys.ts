@@ -22,6 +22,8 @@ const CreateKey = z.object({
   dailyTokenQuota: z.number().int().positive().nullable().default(null),
   maxInputChars: z.number().int().positive().default(24000),
   timeoutMs: z.number().int().positive().default(120000),
+  tokenSaver: z.boolean().default(true),
+  terseness: z.enum(['off', 'caveman', 'ponytail']).default('off'),
   expiresAt: z.string().datetime().nullable().default(null),
 });
 
@@ -34,6 +36,8 @@ const UpdateKey = z.object({
   dailyTokenQuota: z.number().int().positive().nullable().optional(),
   maxInputChars: z.number().int().positive().optional(),
   timeoutMs: z.number().int().positive().optional(),
+  tokenSaver: z.boolean().optional(),
+  terseness: z.enum(['off', 'caveman', 'ponytail']).optional(),
   enabled: z.boolean().optional(),
   expiresAt: z.string().datetime().nullable().optional(),
 });
@@ -119,11 +123,18 @@ export function registerKeyRoutes(app: FastifyInstance): void {
       where: { ownerId },
       orderBy: { createdAt: 'desc' },
     });
+    // Segundos até o reset diário da quota (próxima meia-noite, fuso do servidor).
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    const secondsUntilDailyReset = Math.max(0, Math.round((nextMidnight.getTime() - now.getTime()) / 1000));
+
     const enriched = await Promise.all(
       keys.map(async (k) => ({
         ...k,
         keyHash: undefined,
         usedTokensToday: await usedTokensToday(k.id),
+        secondsUntilDailyReset,
       })),
     );
     return reply.send({ keys: enriched });
@@ -156,6 +167,8 @@ export function registerKeyRoutes(app: FastifyInstance): void {
         dailyTokenQuota: b.dailyTokenQuota,
         maxInputChars: b.maxInputChars,
         timeoutMs: b.timeoutMs,
+        tokenSaver: b.tokenSaver,
+        terseness: b.terseness,
         expiresAt: b.expiresAt ? new Date(b.expiresAt) : null,
       },
     });
@@ -191,6 +204,8 @@ export function registerKeyRoutes(app: FastifyInstance): void {
         ...(b.dailyTokenQuota !== undefined && { dailyTokenQuota: b.dailyTokenQuota }),
         ...(b.maxInputChars !== undefined && { maxInputChars: b.maxInputChars }),
         ...(b.timeoutMs !== undefined && { timeoutMs: b.timeoutMs }),
+        ...(b.tokenSaver !== undefined && { tokenSaver: b.tokenSaver }),
+        ...(b.terseness !== undefined && { terseness: b.terseness }),
         ...(b.enabled !== undefined && { enabled: b.enabled }),
         ...(b.expiresAt !== undefined && { expiresAt: b.expiresAt ? new Date(b.expiresAt) : null }),
       },

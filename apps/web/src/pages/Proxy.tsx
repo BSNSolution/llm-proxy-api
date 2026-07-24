@@ -6,6 +6,7 @@ import { Card } from '../components/ui/card.js';
 import { Badge } from '../components/ui/badge.js';
 import { Field, Input } from '../components/ui/input.js';
 import { Select, toOptions } from '../components/ui/select.js';
+import { Switch } from '../components/ui/toggle.js';
 import { PageHeader, EmptyState } from '../components/ui/page-header.js';
 import { Pagination, usePagination } from '../components/ui/pagination.js';
 import { HintTip, Tooltip } from '../components/ui/tooltip.js';
@@ -251,9 +252,14 @@ export function ProxyPage() {
                     </div>
                     <StatusBadge k={k} />
                   </div>
+                  {k.dailyTokenQuota != null && (
+                    <QuotaBar used={k.usedTokensToday} total={k.dailyTokenQuota} resetIn={k.secondsUntilDailyReset} />
+                  )}
                   <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs text-fg-muted">
                     <span className="font-mono">
-                      {k.rateLimitPerMin}/min · {k.usedTokensToday} tk hoje
+                      {k.rateLimitPerMin}/min · {k.usedTokensToday.toLocaleString('pt-BR')} tk hoje
+                      {k.tokenSaver && <span className="ml-1.5 text-primary/80">· saver</span>}
+                      {k.terseness !== 'off' && <span className="ml-1 text-primary/80">· {k.terseness}</span>}
                     </span>
                     <RowActions
                       k={k}
@@ -296,6 +302,34 @@ function StatusBadge({ k }: { k: ProxyKeyView }) {
     <Badge dot tone={k.revokedAt ? 'err' : k.enabled ? 'ok' : 'neutral'}>
       {k.revokedAt ? 'revogada' : k.enabled ? 'ativa' : 'off'}
     </Badge>
+  );
+}
+
+/** Barra de quota diária + countdown ao vivo até o reset (meia-noite). */
+function QuotaBar({ used, total, resetIn }: { used: number; total: number; resetIn: number }) {
+  const [remaining, setRemaining] = useState(resetIn);
+  useEffect(() => {
+    setRemaining(resetIn);
+    const t = setInterval(() => setRemaining((r) => Math.max(0, r - 1)), 1000);
+    return () => clearInterval(t);
+  }, [resetIn]);
+
+  const pct = Math.min(100, Math.round((used / total) * 100));
+  const tone = pct >= 90 ? 'bg-err' : pct >= 70 ? 'bg-warn' : 'bg-primary';
+  const h = Math.floor(remaining / 3600);
+  const m = Math.floor((remaining % 3600) / 60);
+  return (
+    <div className="mt-3">
+      <div className="mb-1 flex items-center justify-between text-xs text-fg-muted">
+        <span>
+          {used.toLocaleString('pt-BR')} / {total.toLocaleString('pt-BR')} tokens
+        </span>
+        <span className="font-mono text-fg-subtle">reset em {h}h{String(m).padStart(2, '0')}m</span>
+      </div>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
+        <div className={`h-full rounded-full transition-all ${tone}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
   );
 }
 
@@ -414,6 +448,8 @@ function EditKeyModal({
   const [quota, setQuota] = useState(keyView.dailyTokenQuota ? String(keyView.dailyTokenQuota) : '');
   const [models, setModels] = useState(keyView.allowedModels.join(', '));
   const [cors, setCors] = useState('');
+  const [tokenSaver, setTokenSaver] = useState(keyView.tokenSaver);
+  const [terseness, setTerseness] = useState(keyView.terseness || 'off');
   const [saving, setSaving] = useState(false);
 
   async function save() {
@@ -424,6 +460,8 @@ function EditKeyModal({
         rateLimitPerMin: Number(rate) || 20,
         dailyTokenQuota: quota ? Number(quota) : null,
         allowedModels: models.split(',').map((s) => s.trim()).filter(Boolean),
+        tokenSaver,
+        terseness,
         ...(cors.trim()
           ? { corsOrigins: cors.split(',').map((s) => s.trim()).filter(Boolean) }
           : {}),
@@ -458,6 +496,34 @@ function EditKeyModal({
             placeholder="https://meuapp.com, *"
           />
         </Field>
+
+        <div className="rounded-lg border border-border bg-surface-2/40 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-sm">
+              <HintTip content="Comprime saídas de ferramentas (git diff/grep/ls/tree/logs) antes de ir ao LLM. Economiza tokens de entrada sem perder o essencial." />
+              Token Saver
+            </div>
+            <Switch checked={tokenSaver} onChange={setTokenSaver} />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-sm">
+              <HintTip content="Estilo de resposta enxuto p/ economizar tokens de saída. Caveman = respostas telegráficas; Ponytail = código mínimo (YAGNI)." />
+              Respostas enxutas
+            </div>
+            <Select
+              size="sm"
+              className="w-40"
+              value={terseness}
+              onChange={setTerseness}
+              options={[
+                { value: 'off', label: 'Desligado' },
+                { value: 'caveman', label: 'Caveman (conciso)' },
+                { value: 'ponytail', label: 'Ponytail (YAGNI)' },
+              ]}
+            />
+          </div>
+        </div>
+
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
             Cancelar

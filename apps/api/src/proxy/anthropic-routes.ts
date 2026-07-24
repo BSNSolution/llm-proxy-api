@@ -57,6 +57,7 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
         thinking: body.thinking !== undefined,
         timeoutMs: key.timeoutMs,
       }),
+      key,
     );
 
     const id = `msg_${randomUUID().replace(/-/g, '')}`;

@@ -52,6 +52,9 @@ export interface ProxyKeyView {
   lastUsedAt: string | null;
   createdAt: string;
   usedTokensToday: number;
+  tokenSaver: boolean;
+  terseness: string;
+  secondsUntilDailyReset: number;
 }
 
 export interface CreateKeyResult {

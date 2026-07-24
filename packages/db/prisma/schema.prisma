@@ -90,6 +90,8 @@ model ProxyKey {
   maxInputChars   Int       @default(24000)
   timeoutMs       Int       @default(120000)
   enabled         Boolean   @default(true)
+  tokenSaver      Boolean   @default(true) // comprime tool_result (RTK-like); header pode sobrescrever
+  terseness       String    @default("off") // off | caveman | ponytail (+ :level opcional)
   expiresAt       DateTime?
   revokedAt       DateTime?
   lastUsedAt      DateTime?

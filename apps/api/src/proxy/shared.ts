@@ -146,8 +146,9 @@ export async function authorizeProxyRequest<S extends z.ZodTypeAny>(
   const body = parsed.data as z.infer<S>;
 
   // Token Saver: comprime tool_result verbosos (git diff/grep/ls/tree/logs) do
-  // histórico antes de despachar. Default ON; bypass por header. Safe-by-design.
-  const bypass = String(req.headers['x-llmproxy-token-saver'] ?? '').toLowerCase() === 'off';
+  // histórico antes de despachar. Default = config da key; header sobrescreve.
+  const headerTs = String(req.headers['x-llmproxy-token-saver'] ?? '').toLowerCase();
+  const bypass = headerTs === 'off' || (headerTs !== 'on' && key.tokenSaver === false);
   if (!bypass) {
     const msgs = (body as { messages?: unknown[] }).messages;
     if (Array.isArray(msgs)) {
@@ -180,12 +181,13 @@ export async function authorizeProxyRequest<S extends z.ZodTypeAny>(
 }
 
 /**
- * Aplica terseness (Caveman/Ponytail) ao systemPrompt do turno, se o request
- * pedir via header `X-LLMProxy-Terseness: caveman|ponytail[:level]`. Opt-in por
- * request — reduz tokens de SAÍDA. Retorna o turn (possivelmente ajustado).
+ * Aplica terseness (Caveman/Ponytail) ao systemPrompt do turno. Default = config
+ * da key (`key.terseness`); o header `X-LLMProxy-Terseness: caveman|ponytail[:level]`
+ * (ou `off`) sobrescreve por request. Reduz tokens de SAÍDA.
  */
-export function applyTerseness(req: FastifyRequest, turn: CliTurn): CliTurn {
-  const raw = String(req.headers['x-llmproxy-terseness'] ?? '').toLowerCase().trim();
+export function applyTerseness(req: FastifyRequest, turn: CliTurn, key?: ProxyKey): CliTurn {
+  const header = String(req.headers['x-llmproxy-terseness'] ?? '').toLowerCase().trim();
+  const raw = header || (key?.terseness ?? 'off').toLowerCase();
   if (!raw || raw === 'off') return turn;
   const [modeStr, levelStr] = raw.split(':');
   const mode = (['caveman', 'ponytail'].includes(modeStr!) ? modeStr : 'off') as TersenessMode;
