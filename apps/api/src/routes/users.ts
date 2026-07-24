@@ -63,12 +63,20 @@ export function registerUserRoutes(app: FastifyInstance): void {
     const parsed = CreateUser.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: parsed.error.message });
     const { email, name, password, role } = parsed.data;
-    const exists = await prisma.user.findUnique({ where: { email } });
-    if (exists) return reply.status(409).send({ error: 'Já existe um usuário com este e-mail.' });
-    const user = await prisma.user.create({
-      data: { email, name: name ?? null, passwordHash: await hashSecret(password), role },
-      include: { _count: { select: { proxyKeys: true, sessions: true } } },
-    });
+    const passwordHash = await hashSecret(password);
+    let user;
+    try {
+      user = await prisma.user.create({
+        data: { email, name: name ?? null, passwordHash, role },
+        include: { _count: { select: { proxyKeys: true, sessions: true } } },
+      });
+    } catch (err) {
+      // P2002 = violação de unique (email) — inclusive sob corrida (2 requests iguais).
+      if ((err as { code?: string }).code === 'P2002') {
+        return reply.status(409).send({ error: 'Já existe um usuário com este e-mail.' });
+      }
+      throw err;
+    }
     await writeAudit(req.authUser?.id, 'user.create', user.id, { email, role });
     return reply.status(201).send({ user: publicUser(user) });
   });

@@ -1,9 +1,16 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { prisma } from '@llm-proxy/db';
+import { loadConfig } from '@llm-proxy/config';
 import { fastHash, hashSecret, randomToken, verifySecret } from '@llm-proxy/crypto';
 
 const SESSION_COOKIE = 'llmp_session';
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+
+/** Cookie deve ter `secure` quando o app é servido por HTTPS (evita trafegar em claro). */
+function cookieSecure(): boolean {
+  const { publicBaseUrl } = loadConfig();
+  return publicBaseUrl.startsWith('https://');
+}
 
 /** True se NÃO existe nenhum usuário ainda → primeiro acesso (precisa criar admin). */
 export async function needsSetup(): Promise<boolean> {
@@ -20,12 +27,17 @@ export async function bootstrapAdmin(
   name: string | undefined,
   meta: SessionMeta = {},
 ): Promise<string | null> {
-  // guarda contra corrida: cria só se a contagem for 0
-  const count = await prisma.user.count();
-  if (count > 0) return null;
-  const user = await prisma.user.create({
-    data: { email, name: name ?? null, passwordHash: await hashSecret(password), role: 'admin' },
+  // hash é pesado — calcula ANTES da transação (não segura o lock à toa).
+  const passwordHash = await hashSecret(password);
+  // Atômico contra corrida (TOCTOU): um advisory lock serializa o bootstrap.
+  // A 2ª requisição concorrente espera o lock e então vê count>0 → aborta.
+  const user = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(4771)`; // chave arbitrária fixa p/ bootstrap
+    const count = await tx.user.count();
+    if (count > 0) return null;
+    return tx.user.create({ data: { email, name: name ?? null, passwordHash, role: 'admin' } });
   });
+  if (!user) return null;
   return createUiSession(user.id, meta);
 }
 
@@ -99,13 +111,14 @@ export function setSessionCookie(reply: FastifyReply, raw: string): void {
   reply.setCookie(SESSION_COOKIE, raw, {
     httpOnly: true,
     sameSite: 'lax',
+    secure: cookieSecure(),
     path: '/',
     maxAge: SESSION_TTL_MS / 1000,
   });
 }
 
 export function clearSessionCookie(reply: FastifyReply): void {
-  reply.clearCookie(SESSION_COOKIE, { path: '/' });
+  reply.clearCookie(SESSION_COOKIE, { path: '/', secure: cookieSecure() });
 }
 
 export { SESSION_COOKIE };

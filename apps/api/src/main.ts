@@ -2,7 +2,7 @@ import './load-env.js'; // DEVE ser o primeiro import (carrega .env antes de qua
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import Fastify from 'fastify';
+import Fastify, { type FastifyError } from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
@@ -31,6 +31,28 @@ async function main(): Promise<void> {
 
   await app.register(cors, { origin: true, credentials: true });
   await app.register(cookie, { secret: cfg.sessionSecret });
+
+  // Handler de erro global: nunca vaza stack trace ao cliente; traduz falhas de
+  // infra (banco/redis indisponível) para mensagem amigável. Loga o detalhe.
+  app.setErrorHandler((err: FastifyError, req, reply) => {
+    req.log.error(err);
+    const code = err.code ?? '';
+    // Prisma: P1001/P1000/P1002 = não alcança/timeout no banco.
+    if (typeof code === 'string' && /^P100\d/.test(code)) {
+      return reply
+        .status(503)
+        .send({ error: 'Serviço indisponível no momento (banco de dados). Tente novamente em instantes.', code: 'db_unavailable' });
+    }
+    if (err.message?.includes('ECONNREFUSED') || err.message?.includes('Redis')) {
+      return reply
+        .status(503)
+        .send({ error: 'Serviço indisponível no momento. Tente novamente em instantes.', code: 'unavailable' });
+    }
+    const status = err.statusCode && err.statusCode >= 400 ? err.statusCode : 500;
+    return reply
+      .status(status)
+      .send({ error: status >= 500 ? 'Algo deu errado no servidor.' : err.message, code: 'error' });
+  });
 
   app.get('/health', async () => ({ ok: true, service: 'llm-proxy-api' }));
 

@@ -103,34 +103,60 @@ export function registerOpenAiRoutes(app: FastifyInstance): void {
     if (body.stream) {
       reply.raw.writeHead(200, sseHeaders());
       const send = (obj: unknown): void => {
-        reply.raw.write(`data: ${JSON.stringify(obj)}\n\n`);
+        if (!reply.raw.writableEnded) reply.raw.write(`data: ${JSON.stringify(obj)}\n\n`);
       };
-      const result = await executeTurn(turn, {
-        onDelta: (text) =>
-          send({
-            id,
-            object: 'chat.completion.chunk',
-            created,
-            model: modelRes.model,
-            choices: [{ index: 0, delta: { content: text }, finish_reason: null }],
-          }),
-        onError: (message) => send({ error: { message, code: 'cli_error' } }),
-      });
-      send({
-        id,
-        object: 'chat.completion.chunk',
-        created,
-        model: modelRes.model,
-        choices: [{ index: 0, delta: {}, finish_reason: result.finishReason }],
-      });
-      reply.raw.write('data: [DONE]\n\n');
-      reply.raw.end();
-      await recordUsage(key.id, modelRes.model, result, startedAt);
+      // disconnect do cliente → aborta o turno (não deixa a CLI rodando à toa)
+      const ac = new AbortController();
+      req.raw.on('close', () => ac.abort());
+      let finishReason = 'stop';
+      try {
+        const result = await executeTurn(
+          turn,
+          {
+            onDelta: (text) =>
+              send({
+                id,
+                object: 'chat.completion.chunk',
+                created,
+                model: modelRes.model,
+                choices: [{ index: 0, delta: { content: text }, finish_reason: null }],
+              }),
+            onError: (message) => send({ error: { message, code: 'cli_error' } }),
+          },
+          ac.signal,
+        );
+        finishReason = result.finishReason;
+        await recordUsage(key.id, modelRes.model, result, startedAt);
+      } catch (err) {
+        // erro APÓS o 200 já enviado: não dá pra mudar status → emite erro no stream.
+        finishReason = 'error';
+        send({ error: { message: (err as Error).message ?? 'Erro ao gerar resposta.', code: 'cli_error' } });
+      } finally {
+        // SEMPRE finaliza no protocolo OpenAI (chunk final + [DONE]) para o client não travar.
+        send({
+          id,
+          object: 'chat.completion.chunk',
+          created,
+          model: modelRes.model,
+          choices: [{ index: 0, delta: {}, finish_reason: finishReason }],
+        });
+        if (!reply.raw.writableEnded) {
+          reply.raw.write('data: [DONE]\n\n');
+          reply.raw.end();
+        }
+      }
       return;
     }
 
     // non-stream: agrega
-    const result = await executeTurn(turn);
+    let result;
+    try {
+      result = await executeTurn(turn);
+    } catch (err) {
+      return reply
+        .status(502)
+        .send({ error: { message: (err as Error).message ?? 'Erro ao gerar resposta.', code: 'cli_error' } });
+    }
     await recordUsage(key.id, modelRes.model, result, startedAt);
     return reply.send({
       id,

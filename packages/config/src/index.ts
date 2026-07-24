@@ -29,7 +29,12 @@ function resolveSessionSecret(fromEnv?: string): string {
     writeFileSync(file, generated, { mode: 0o600 });
     return generated;
   } catch {
-    // último recurso: segredo efêmero (desloga no restart, mas nunca previsível)
+    // último recurso: segredo efêmero (nunca previsível, mas desloga todos no restart).
+    // Avisa o operador para que ele configure SESSION_SECRET ou um DATA_DIR gravável.
+    console.warn(
+      '[config] Não foi possível persistir o segredo de sessão em DATA_DIR — usando um efêmero. ' +
+        'Defina SESSION_SECRET ou garanta um DATA_DIR gravável para as sessões sobreviverem a reinícios.',
+    );
     return randomBytes(48).toString('base64url');
   }
 }

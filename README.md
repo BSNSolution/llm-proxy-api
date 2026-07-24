@@ -42,7 +42,8 @@ your own scripts, a CRM, a deploy panel, internal apps, test environments, etc.
 
 ## Quick start (local)
 
-Requirements: **Node.js 22+**, **pnpm**, and **Docker** (for Postgres + Redis).
+Requirements: **Node.js 22+**, **pnpm** (`npm i -g pnpm`), and **Docker** (for Postgres + Redis).
+Check with `node -v` (must be ≥ 22) and `docker info` (Docker must be running).
 
 ```bash
 git clone https://github.com/BSNSolution/llm-proxy-api.git
@@ -52,15 +53,18 @@ cp .env.example .env
 
 # start Postgres + Redis
 pnpm docker:dev
-# apply the database schema
-pnpm db:migrate
+# apply the database schema (non-interactive)
+pnpm db:deploy
 
 # run api + web in dev
 pnpm dev
 ```
 
-Open **http://localhost:5174** — on the first run you'll be asked to
-**create your admin account**. That's it.
+Open the **web UI at http://localhost:5174** (the API/proxy runs on `:8787`) —
+on the first run you'll be asked to **create your admin account**. That's it.
+
+> In the single-process production build (below), both the UI and the API are
+> served together on `API_PORT` (default `8787`).
 
 Production build (single process, API serves the web UI):
 

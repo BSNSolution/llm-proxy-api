@@ -12,12 +12,15 @@ import { dirname, join, parse } from 'node:path';
  * Node 22+ tem process.loadEnvFile nativo (sem dependências).
  */
 function findEnvFile(startDir: string): string | null {
-  const root = parse(startDir).root;
+  const fsRoot = parse(startDir).root;
   let dir = startDir;
   for (;;) {
     const candidate = join(dir, '.env');
     if (existsSync(candidate)) return candidate;
-    if (dir === root) return null;
+    // Não sobe ALÉM da raiz do monorepo (marcada por pnpm-workspace.yaml) — evita
+    // carregar um .env de um diretório PAI fora do projeto.
+    if (existsSync(join(dir, 'pnpm-workspace.yaml'))) return null;
+    if (dir === fsRoot) return null;
     dir = dirname(dir);
   }
 }

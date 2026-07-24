@@ -82,7 +82,7 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
     if (body.stream) {
       reply.raw.writeHead(200, sseHeaders());
       const event = (type: string, data: unknown): void => {
-        reply.raw.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+        if (!reply.raw.writableEnded) reply.raw.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
       };
       event('message_start', {
         type: 'message_start',
@@ -93,28 +93,51 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
         index: 0,
         content_block: { type: 'text', text: '' },
       });
-      const result = await executeTurn(turn, {
-        onDelta: (text) =>
-          event('content_block_delta', {
-            type: 'content_block_delta',
-            index: 0,
-            delta: { type: 'text_delta', text },
-          }),
-        onError: (message) => event('error', { type: 'error', error: { type: 'cli_error', message } }),
-      });
-      event('content_block_stop', { type: 'content_block_stop', index: 0 });
-      event('message_delta', {
-        type: 'message_delta',
-        delta: { stop_reason: result.finishReason === 'error' ? 'error' : 'end_turn' },
-        usage: { output_tokens: result.usage.outputTokens },
-      });
-      event('message_stop', { type: 'message_stop' });
-      reply.raw.end();
-      await recordUsage(key.id, modelRes.model, result, startedAt);
+      const ac = new AbortController();
+      req.raw.on('close', () => ac.abort());
+      let stopReason = 'end_turn';
+      let outTokens = 0;
+      try {
+        const result = await executeTurn(
+          turn,
+          {
+            onDelta: (text) =>
+              event('content_block_delta', {
+                type: 'content_block_delta',
+                index: 0,
+                delta: { type: 'text_delta', text },
+              }),
+            onError: (message) => event('error', { type: 'error', error: { type: 'cli_error', message } }),
+          },
+          ac.signal,
+        );
+        stopReason = result.finishReason === 'error' ? 'error' : 'end_turn';
+        outTokens = result.usage.outputTokens;
+        await recordUsage(key.id, modelRes.model, result, startedAt);
+      } catch (err) {
+        stopReason = 'error';
+        event('error', {
+          type: 'error',
+          error: { type: 'cli_error', message: (err as Error).message ?? 'Erro ao gerar resposta.' },
+        });
+      } finally {
+        // SEMPRE fecha o protocolo Anthropic para o client não travar.
+        event('content_block_stop', { type: 'content_block_stop', index: 0 });
+        event('message_delta', { type: 'message_delta', delta: { stop_reason: stopReason }, usage: { output_tokens: outTokens } });
+        event('message_stop', { type: 'message_stop' });
+        if (!reply.raw.writableEnded) reply.raw.end();
+      }
       return;
     }
 
-    const result = await executeTurn(turn);
+    let result;
+    try {
+      result = await executeTurn(turn);
+    } catch (err) {
+      return reply
+        .status(502)
+        .send({ type: 'error', error: { type: 'cli_error', message: (err as Error).message ?? 'Erro ao gerar resposta.' } });
+    }
     await recordUsage(key.id, modelRes.model, result, startedAt);
     return reply.send({
       id,

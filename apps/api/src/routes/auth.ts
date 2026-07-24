@@ -10,6 +10,7 @@ import {
   setSessionCookie,
 } from '../services/ui-auth.js';
 import { writeAudit } from '../services/audit.js';
+import { authRateLimit } from '../services/auth-rate-limit.js';
 
 const LoginBody = z.object({ email: z.string().email(), password: z.string().min(1) });
 const SetupBody = z.object({
@@ -26,6 +27,8 @@ export function registerAuthRoutes(app: FastifyInstance): void {
 
   // First-run: cria o PRIMEIRO admin e já loga. Só funciona com 0 usuários.
   app.post('/api/auth/setup', async (req, reply) => {
+    const rl = await authRateLimit('setup', req.ip, 10);
+    if (!rl.ok) return reply.status(429).send({ error: 'Muitas tentativas. Aguarde um instante.' });
     const parsed = SetupBody.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: 'Dados inválidos.' });
     const raw = await bootstrapAdmin(parsed.data.email, parsed.data.password, parsed.data.name, {
@@ -39,6 +42,11 @@ export function registerAuthRoutes(app: FastifyInstance): void {
   });
 
   app.post('/api/auth/login', async (req, reply) => {
+    // rate-limit por IP contra brute-force (fail-open se Redis cair)
+    const rl = await authRateLimit('login', req.ip, 10);
+    if (!rl.ok) {
+      return reply.status(429).send({ error: 'Muitas tentativas de login. Aguarde um instante.' });
+    }
     const parsed = LoginBody.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: 'Dados inválidos.' });
     const raw = await login(parsed.data.email, parsed.data.password, {

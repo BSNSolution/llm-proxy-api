@@ -39,6 +39,7 @@
     "test": "turbo run test",
     "db:generate": "pnpm --filter @llm-proxy/db run generate",
     "db:migrate": "pnpm --filter @llm-proxy/db run migrate",
+    "db:deploy": "pnpm --filter @llm-proxy/db run migrate:deploy",
     "db:studio": "pnpm --filter @llm-proxy/db run studio",
     "docker:dev": "docker compose -f infra/compose/docker-compose.dev.yml up -d",
     "docker:dev:down": "docker compose -f infra/compose/docker-compose.dev.yml down"
