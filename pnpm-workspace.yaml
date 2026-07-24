@@ -6,3 +6,11 @@ packages:
 overrides:
   fast-uri: "^4.1.1"
   find-my-way: "^9.7.0"
+
+# pnpm 11 bloqueia build scripts de deps por padrão; em CI (não-interativo) isso
+# aborta o install com ERR_PNPM_IGNORED_BUILDS. Aprovamos só o necessário.
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - prisma
+  - esbuild
