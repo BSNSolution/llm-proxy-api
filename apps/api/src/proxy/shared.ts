@@ -1,5 +1,7 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import type { z } from 'zod';
+import { compressMessages, withTerseness, type TersenessLevel, type TersenessMode } from '@llm-proxy/token-saver';
+import type { CliTurn } from '@llm-proxy/shared-types';
 import { prisma, type ProxyKey } from '@llm-proxy/db';
 import {
   addQuotaUsage,
@@ -143,6 +145,20 @@ export async function authorizeProxyRequest<S extends z.ZodTypeAny>(
   }
   const body = parsed.data as z.infer<S>;
 
+  // Token Saver: comprime tool_result verbosos (git diff/grep/ls/tree/logs) do
+  // histórico antes de despachar. Default ON; bypass por header. Safe-by-design.
+  const bypass = String(req.headers['x-llmproxy-token-saver'] ?? '').toLowerCase() === 'off';
+  if (!bypass) {
+    const msgs = (body as { messages?: unknown[] }).messages;
+    if (Array.isArray(msgs)) {
+      const { messages: compressed, savedChars } = compressMessages(msgs as Array<{ role?: string; content?: unknown }>);
+      if (savedChars > 0) {
+        (body as { messages?: unknown[] }).messages = compressed;
+        reply.header('X-LLMProxy-Tokens-Saved-Chars', String(savedChars));
+      }
+    }
+  }
+
   const modelRes = resolveModel(key, (body as { model?: string }).model);
   if (!modelRes.ok) {
     sendProxyError(reply, modelRes.error);
@@ -161,6 +177,21 @@ export async function authorizeProxyRequest<S extends z.ZodTypeAny>(
   }
 
   return { key, body, model: modelRes.model };
+}
+
+/**
+ * Aplica terseness (Caveman/Ponytail) ao systemPrompt do turno, se o request
+ * pedir via header `X-LLMProxy-Terseness: caveman|ponytail[:level]`. Opt-in por
+ * request — reduz tokens de SAÍDA. Retorna o turn (possivelmente ajustado).
+ */
+export function applyTerseness(req: FastifyRequest, turn: CliTurn): CliTurn {
+  const raw = String(req.headers['x-llmproxy-terseness'] ?? '').toLowerCase().trim();
+  if (!raw || raw === 'off') return turn;
+  const [modeStr, levelStr] = raw.split(':');
+  const mode = (['caveman', 'ponytail'].includes(modeStr!) ? modeStr : 'off') as TersenessMode;
+  if (mode === 'off') return turn;
+  const level = (['lite', 'full', 'ultra'].includes(levelStr ?? '') ? levelStr : 'full') as TersenessLevel;
+  return { ...turn, systemPrompt: withTerseness(turn.systemPrompt, mode, level) };
 }
 
 /** Registra o uso do turno (quota + UsageLog). Compartilhado pelos dois dialetos. */

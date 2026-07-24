@@ -9,6 +9,7 @@ import { getHttpKeys } from '../services/http-providers.js';
 import { openAiToTurn, type OpenAiMessage } from './map-turn.js';
 import {
   applyEndpointCors,
+  applyTerseness,
   authorizeProxyRequest,
   extractBearer,
   recordUsage,
@@ -58,11 +59,14 @@ export function registerOpenAiRoutes(app: FastifyInstance): void {
     const modelRes = { model: target.label };
     const httpKeys = await getHttpKeys();
 
-    const turn = openAiToTurn(key.cliKind, body.messages as OpenAiMessage[], {
-      model,
-      thinking: body.reasoning_effort ? body.reasoning_effort !== 'none' : undefined,
-      timeoutMs: key.timeoutMs,
-    });
+    const turn = applyTerseness(
+      req,
+      openAiToTurn(key.cliKind, body.messages as OpenAiMessage[], {
+        model,
+        thinking: body.reasoning_effort ? body.reasoning_effort !== 'none' : undefined,
+        timeoutMs: key.timeoutMs,
+      }),
+    );
 
     const id = `chatcmpl-${randomUUID()}`;
     const created = Math.floor(Date.now() / 1000);

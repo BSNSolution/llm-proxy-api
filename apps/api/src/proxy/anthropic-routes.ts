@@ -9,6 +9,7 @@ import { getHttpKeys } from '../services/http-providers.js';
 import { anthropicToTurn, type AnthropicMessage } from './map-turn.js';
 import {
   applyEndpointCors,
+  applyTerseness,
   authorizeProxyRequest,
   extractBearer,
   recordUsage,
@@ -49,11 +50,14 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
     const modelRes = { model: target.label };
     const httpKeys = await getHttpKeys();
 
-    const turn = anthropicToTurn(key.cliKind, body.system, body.messages as AnthropicMessage[], {
-      model,
-      thinking: body.thinking !== undefined,
-      timeoutMs: key.timeoutMs,
-    });
+    const turn = applyTerseness(
+      req,
+      anthropicToTurn(key.cliKind, body.system, body.messages as AnthropicMessage[], {
+        model,
+        thinking: body.thinking !== undefined,
+        timeoutMs: key.timeoutMs,
+      }),
+    );
 
     const id = `msg_${randomUUID().replace(/-/g, '')}`;
     const startedAt = Date.now();

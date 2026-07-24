@@ -19,6 +19,7 @@
     "@llm-proxy/crypto": "workspace:*",
     "@llm-proxy/db": "workspace:*",
     "@llm-proxy/shared-types": "workspace:*",
+    "@llm-proxy/token-saver": "workspace:*",
     "@node-rs/argon2": "^2.0.2",
     "@prisma/client": "^6.2.1",
     "fastify": "^5.2.1",
