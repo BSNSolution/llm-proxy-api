@@ -9,6 +9,7 @@ import {
   Settings,
   Users,
   Workflow,
+  Layers,
   type LucideIcon,
 } from 'lucide-react';
 import { SetupPage } from './pages/Setup.js';
@@ -18,6 +19,7 @@ import { ConfigPage } from './pages/Config.js';
 import { UsagePage } from './pages/Usage.js';
 import { UsersPage } from './pages/Users.js';
 import { RouterPage } from './pages/Router.js';
+import { CombosPage } from './pages/Combos.js';
 import { LoginPage } from './pages/Login.js';
 import { SetupAdminPage } from './pages/SetupAdmin.js';
 import { Logo, LogoMark } from './components/logo.js';
@@ -33,6 +35,7 @@ const NAV: NavItem[] = [
   { to: '/usage', label: 'Uso & Logs', icon: BarChart3, hint: 'Métricas de uso, tokens e histórico.' },
   { to: '/chat', label: 'Chat', icon: MessagesSquare, hint: 'Converse com suas LLMs pela interface.' },
   { to: '/router', label: 'Router', icon: Workflow, hint: 'Defina qual LLM usa para cada função (1 key, várias especialistas).' },
+  { to: '/combos', label: 'Fontes & Combos', icon: Layers, hint: 'Fontes HTTP (deploy servidor) e combos com fallback automático.' },
   { to: '/config', label: 'Configurações', icon: Settings, hint: 'Ative CLIs e defina modelos padrão.' },
   { to: '/users', label: 'Usuários', icon: Users, hint: 'Usuários, papéis e sessões ativas.', adminOnly: true },
 ];
@@ -104,6 +107,7 @@ export function App() {
               <Route path="/usage" element={<UsagePage />} />
               <Route path="/chat" element={<ChatPage />} />
               <Route path="/router" element={<RouterPage />} />
+              <Route path="/combos" element={<CombosPage />} />
               <Route path="/config" element={<ConfigPage />} />
               {role === 'admin' && <Route path="/users" element={<UsersPage />} />}
             </Routes>
