@@ -3,6 +3,9 @@
  * Fonte da verdade dos tipos que cruzam camadas.
  */
 
+// Capacidades funcionais (o que cada CLI consegue fazer) — base do Capability Router.
+export * from './capabilities.js';
+
 /** As LLM CLIs que o sistema sabe detectar e operar. */
 export const CLI_KINDS = [
   // 6 core (Fase 1)

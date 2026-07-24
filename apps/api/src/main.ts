@@ -18,6 +18,7 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerSetupRoutes } from './routes/setup.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerSessionRoutes } from './routes/sessions.js';
+import { registerCapabilityRoutes } from './routes/capabilities.js';
 import { resolveSession } from './services/ui-auth.js';
 import { scheduleReprobe } from './services/cli-reprobe.js';
 
@@ -101,6 +102,7 @@ async function main(): Promise<void> {
   registerSetupRoutes(app);
   registerUserRoutes(app);
   registerSessionRoutes(app);
+  registerCapabilityRoutes(app);
 
   // Em produção, serve o web buildado (SPA) a partir do próprio servidor.
   const webDist = join(dirname(fileURLToPath(import.meta.url)), '../../web/dist');

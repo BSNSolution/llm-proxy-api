@@ -18,3 +18,4 @@ export * from './attachments.js';
 export * from './transcribe.js';
 export * from './image-gen.js';
 export * from './setup/index.js';
+export * from './sources/index.js';
