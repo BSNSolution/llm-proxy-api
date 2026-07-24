@@ -55,3 +55,4 @@ export const CLI_TO_HTTP_PROVIDER: Partial<Record<CliKind, HttpProviderKind>> = 
 };
 
 export * from './http-source.js';
+export * from './fallback.js';

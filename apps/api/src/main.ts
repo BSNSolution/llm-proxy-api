@@ -19,6 +19,9 @@ import { registerSetupRoutes } from './routes/setup.js';
 import { registerUserRoutes } from './routes/users.js';
 import { registerSessionRoutes } from './routes/sessions.js';
 import { registerCapabilityRoutes } from './routes/capabilities.js';
+import { registerComboRoutes } from './routes/combos.js';
+import { registerHttpProviderRoutes } from './routes/http-providers.js';
+import { registerRouterRoutes } from './routes/routers.js';
 import { resolveSession } from './services/ui-auth.js';
 import { scheduleReprobe } from './services/cli-reprobe.js';
 
@@ -87,6 +90,7 @@ async function main(): Promise<void> {
     const isWrite = ['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method);
     const selfWriteAllowed =
       url === '/api/detect' || // detect é leitura disfarçada de POST
+      url === '/api/routers/detect' || // preview do detector (sem efeito colateral)
       url.startsWith('/api/sessions') || // revogar as próprias sessões (handler checa o dono)
       url.startsWith('/api/chat'); // usar/gerenciar o próprio chat (handler checa o dono)
     if (isWrite && !selfWriteAllowed && user.role !== 'admin') {
@@ -103,6 +107,9 @@ async function main(): Promise<void> {
   registerUserRoutes(app);
   registerSessionRoutes(app);
   registerCapabilityRoutes(app);
+  registerComboRoutes(app);
+  registerHttpProviderRoutes(app);
+  registerRouterRoutes(app);
 
   // Em produção, serve o web buildado (SPA) a partir do próprio servidor.
   const webDist = join(dirname(fileURLToPath(import.meta.url)), '../../web/dist');

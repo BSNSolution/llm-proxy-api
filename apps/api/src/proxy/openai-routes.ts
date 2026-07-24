@@ -2,7 +2,10 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { randomUUID } from '@llm-proxy/crypto';
 import { authenticateProxyKey } from '../services/proxy-auth.js';
-import { executeTurn } from '../services/turn-runner.js';
+import { executeTurnWithSources } from '../services/turn-runner.js';
+import { resolveTarget } from '../services/resolve-target.js';
+import { resolveRouterTarget } from '../services/resolve-router.js';
+import { getHttpKeys } from '../services/http-providers.js';
 import { openAiToTurn, type OpenAiMessage } from './map-turn.js';
 import {
   applyEndpointCors,
@@ -48,10 +51,15 @@ export function registerOpenAiRoutes(app: FastifyInstance): void {
     );
     if (!authz) return; // erro já enviado pelo helper
     const { key, body, model } = authz;
-    const modelRes = { model };
+
+    // Resolve o DESTINO: router (cap:/router:) → combo/fonte; senão combo:/fonte direta.
+    const routerTarget = await resolveRouterTarget(key, model, body);
+    const target = routerTarget ?? (await resolveTarget(key, model));
+    const modelRes = { model: target.label };
+    const httpKeys = await getHttpKeys();
 
     const turn = openAiToTurn(key.cliKind, body.messages as OpenAiMessage[], {
-      model: modelRes.model,
+      model,
       thinking: body.reasoning_effort ? body.reasoning_effort !== 'none' : undefined,
       timeoutMs: key.timeoutMs,
     });
@@ -70,7 +78,8 @@ export function registerOpenAiRoutes(app: FastifyInstance): void {
       req.raw.on('close', () => ac.abort());
       let finishReason = 'stop';
       try {
-        const result = await executeTurn(
+        const result = await executeTurnWithSources(
+          target.refs,
           turn,
           {
             onDelta: (text) =>
@@ -83,7 +92,7 @@ export function registerOpenAiRoutes(app: FastifyInstance): void {
               }),
             onError: (message) => send({ error: { message, code: 'cli_error' } }),
           },
-          ac.signal,
+          { signal: ac.signal, httpKeys, timeoutMs: key.timeoutMs },
         );
         finishReason = result.finishReason;
         await recordUsage(key.id, modelRes.model, result, startedAt);
@@ -111,7 +120,7 @@ export function registerOpenAiRoutes(app: FastifyInstance): void {
     // non-stream: agrega
     let result;
     try {
-      result = await executeTurn(turn);
+      result = await executeTurnWithSources(target.refs, turn, {}, { httpKeys, timeoutMs: key.timeoutMs });
     } catch (err) {
       return reply
         .status(502)

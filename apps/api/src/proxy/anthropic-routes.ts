@@ -2,7 +2,10 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { randomUUID } from '@llm-proxy/crypto';
 import { authenticateProxyKey } from '../services/proxy-auth.js';
-import { executeTurn } from '../services/turn-runner.js';
+import { executeTurnWithSources } from '../services/turn-runner.js';
+import { resolveTarget } from '../services/resolve-target.js';
+import { resolveRouterTarget } from '../services/resolve-router.js';
+import { getHttpKeys } from '../services/http-providers.js';
 import { anthropicToTurn, type AnthropicMessage } from './map-turn.js';
 import {
   applyEndpointCors,
@@ -40,10 +43,14 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
     );
     if (!authz) return; // erro já enviado pelo helper
     const { key, body, model } = authz;
-    const modelRes = { model };
+
+    const routerTarget = await resolveRouterTarget(key, model, body);
+    const target = routerTarget ?? (await resolveTarget(key, model));
+    const modelRes = { model: target.label };
+    const httpKeys = await getHttpKeys();
 
     const turn = anthropicToTurn(key.cliKind, body.system, body.messages as AnthropicMessage[], {
-      model: modelRes.model,
+      model,
       thinking: body.thinking !== undefined,
       timeoutMs: key.timeoutMs,
     });
@@ -70,7 +77,8 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
       let stopReason = 'end_turn';
       let outTokens = 0;
       try {
-        const result = await executeTurn(
+        const result = await executeTurnWithSources(
+          target.refs,
           turn,
           {
             onDelta: (text) =>
@@ -81,7 +89,7 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
               }),
             onError: (message) => event('error', { type: 'error', error: { type: 'cli_error', message } }),
           },
-          ac.signal,
+          { signal: ac.signal, httpKeys, timeoutMs: key.timeoutMs },
         );
         stopReason = result.finishReason === 'error' ? 'error' : 'end_turn';
         outTokens = result.usage.outputTokens;
@@ -104,7 +112,7 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
 
     let result;
     try {
-      result = await executeTurn(turn);
+      result = await executeTurnWithSources(target.refs, turn, {}, { httpKeys, timeoutMs: key.timeoutMs });
     } catch (err) {
       return reply
         .status(502)

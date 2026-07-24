@@ -177,3 +177,92 @@ enum CliKind {
   grok
   continue
 }
+
+/// Fonte de execução de um item: CLI local (subscription) ou HTTP (API key).
+enum SourceKind {
+  cli
+  http
+}
+
+/// Provider HTTP suportado (espelha as CLIs que já operamos — não é catálogo).
+enum HttpProvider {
+  anthropic
+  openai
+  gemini
+}
+
+/// Credencial HTTP por provider (API key cifrada) — habilita deploy em
+/// container/VPS/CF onde não há CLI local, e itens HTTP em combos.
+model HttpProviderConfig {
+  id           String       @id @default(cuid())
+  provider     HttpProvider @unique
+  apiKeyCipher String // encryptSecret(apiKey) — nunca em texto puro
+  baseUrl      String? // override do endpoint (proxy corporativo)
+  enabled      Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+/// Combo = lista ordenada de fontes/modelos com fallback automático.
+/// Vira "modelo virtual" no proxy: model="combo:<slug>".
+model Combo {
+  id        String      @id @default(cuid())
+  ownerId   String
+  slug      String // identificador usado no proxy (único por dono)
+  name      String
+  strategy  String      @default("priority") // priority | round-robin
+  enabled   Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  items     ComboItem[]
+
+  @@unique([ownerId, slug])
+  @@index([ownerId])
+}
+
+model ComboItem {
+  id       String       @id @default(cuid())
+  comboId  String
+  order    Int // posição no fallback (0 = primário)
+  source   SourceKind   @default(cli)
+  cliKind  CliKind? // quando source=cli
+  provider HttpProvider? // quando source=http
+  model    String?
+  combo    Combo        @relation(fields: [comboId], references: [id], onDelete: Cascade)
+
+  @@index([comboId, order])
+}
+
+/// Router (workflow) = mapa capacidade→destino. O proxy detecta a capacidade do
+/// request (ou recebe override cap:<slug>) e despacha p/ a LLM especialista.
+/// model="router" (default) ou model="router:<slug>".
+model Router {
+  id        String       @id @default(cuid())
+  ownerId   String
+  slug      String
+  name      String
+  isDefault Boolean      @default(false)
+  enabled   Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  rules     RouterRule[]
+
+  @@unique([ownerId, slug])
+  @@index([ownerId])
+}
+
+model RouterRule {
+  id         String        @id @default(cuid())
+  routerId   String
+  capability String // FunctionCapability slug (ex.: analisar-imagem)
+  // destino: uma fonte direta OU um combo
+  source     SourceKind?   @default(cli)
+  cliKind    CliKind?
+  provider   HttpProvider?
+  model      String?
+  comboId    String? // se setado, despacha p/ o combo (com fallback)
+  router     Router        @relation(fields: [routerId], references: [id], onDelete: Cascade)
+
+  @@unique([routerId, capability])
+  @@index([routerId])
+}
