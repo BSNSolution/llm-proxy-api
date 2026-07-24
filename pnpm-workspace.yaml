@@ -8,9 +8,10 @@ overrides:
   find-my-way: "^9.7.0"
 
 # pnpm 11 bloqueia build scripts de deps por padrão; em CI (não-interativo) isso
-# aborta o install com ERR_PNPM_IGNORED_BUILDS. Aprovamos só o necessário.
-onlyBuiltDependencies:
-  - "@prisma/client"
-  - "@prisma/engines"
-  - prisma
-  - esbuild
+# aborta o install com ERR_PNPM_IGNORED_BUILDS. `allowBuilds` (substituto de
+# `onlyBuiltDependencies` a partir do v11) aprova só o necessário p/ os postinstall.
+allowBuilds:
+  "@prisma/client": true
+  "@prisma/engines": true
+  prisma: true
+  esbuild: true
