@@ -1,20 +1,14 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { randomUUID } from '@llm-proxy/crypto';
-import { prisma } from '@llm-proxy/db';
-import {
-  addQuotaUsage,
-  authenticateProxyKey,
-  checkDailyQuota,
-  checkRateLimit,
-} from '../services/proxy-auth.js';
+import { authenticateProxyKey } from '../services/proxy-auth.js';
 import { executeTurn } from '../services/turn-runner.js';
 import { anthropicToTurn, type AnthropicMessage } from './map-turn.js';
 import {
   applyEndpointCors,
+  authorizeProxyRequest,
   extractBearer,
-  resolveModel,
-  sendProxyError,
+  recordUsage,
   sseHeaders,
 } from './shared.js';
 
@@ -38,37 +32,15 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
   });
 
   app.post('/v1/messages', async (req: FastifyRequest, reply: FastifyReply) => {
-    const auth = await authenticateProxyKey(extractBearer(req));
-    if (!auth.ok) return sendProxyError(reply, auth);
-    const key = auth.key;
-
-    if (!applyEndpointCors(req, reply, key)) {
-      return sendProxyError(reply, {
-        ok: false,
-        status: 403,
-        code: 'cors_origin_not_allowed',
-        message: 'Origin não permitido para esta key.',
-      });
-    }
-
-    const rl = await checkRateLimit(key);
-    if (rl) return sendProxyError(reply, rl);
-    const q = await checkDailyQuota(key);
-    if (q) return sendProxyError(reply, q);
-
-    const parsed = MessagesBody.safeParse(req.body);
-    if (!parsed.success) {
-      return sendProxyError(reply, {
-        ok: false,
-        status: 400,
-        code: 'invalid_request',
-        message: parsed.error.message,
-      });
-    }
-    const body = parsed.data;
-
-    const modelRes = resolveModel(key, body.model);
-    if (!modelRes.ok) return sendProxyError(reply, modelRes.error);
+    const authz = await authorizeProxyRequest(
+      req,
+      reply,
+      MessagesBody,
+      (b) => JSON.stringify(b.messages).length + (b.system?.length ?? 0),
+    );
+    if (!authz) return; // erro já enviado pelo helper
+    const { key, body, model } = authz;
+    const modelRes = { model };
 
     const turn = anthropicToTurn(key.cliKind, body.system, body.messages as AnthropicMessage[], {
       model: modelRes.model,
@@ -152,27 +124,4 @@ export function registerAnthropicRoutes(app: FastifyInstance): void {
       },
     });
   });
-}
-
-async function recordUsage(
-  proxyKeyId: string,
-  model: string,
-  result: { usage: { inputTokens: number; outputTokens: number; estimated: boolean }; finishReason: string },
-  startedAt: number,
-): Promise<void> {
-  const total = result.usage.inputTokens + result.usage.outputTokens;
-  await addQuotaUsage(proxyKeyId, total);
-  await prisma.usageLog
-    .create({
-      data: {
-        proxyKeyId,
-        model,
-        inputTokens: result.usage.inputTokens,
-        outputTokens: result.usage.outputTokens,
-        estimated: result.usage.estimated,
-        latencyMs: Date.now() - startedAt,
-        status: result.finishReason === 'error' ? 500 : 200,
-      },
-    })
-    .catch(() => {});
 }

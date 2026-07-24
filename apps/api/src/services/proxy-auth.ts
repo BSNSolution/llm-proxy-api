@@ -43,9 +43,10 @@ export async function authenticateProxyKey(raw: string | undefined): Promise<Aut
 export async function checkRateLimit(key: ProxyKey): Promise<AuthError | null> {
   const minuteEpoch = Math.floor(Date.now() / 60_000);
   const rk = rateLimitKey(key.id, minuteEpoch);
-  const count = await redis.incr(rk);
-  if (count === 1) await redis.expire(rk, 65);
-  if (count > key.rateLimitPerMin) {
+  // INCR + EXPIRE atômicos num pipeline: garante o TTL mesmo se o processo cair
+  // entre os dois (senão a chave poderia ficar sem expiração e travar a key).
+  const [count] = (await redis.multi().incr(rk).expire(rk, 65).exec())?.map((r) => r?.[1]) ?? [];
+  if (typeof count === 'number' && count > key.rateLimitPerMin) {
     return {
       ok: false,
       status: 429,
@@ -56,7 +57,15 @@ export async function checkRateLimit(key: ProxyKey): Promise<AuthError | null> {
   return null;
 }
 
-/** Verifica se ainda há quota diária de tokens. Retorna null se ok. */
+/**
+ * Verifica se ainda há quota diária de tokens. Retorna null se ok.
+ *
+ * A leitura é atômica (Redis GET) e reflete tudo que já foi registrado por
+ * addQuotaUsage (INCRBY atômico). Como os tokens de UM turno só são conhecidos
+ * DEPOIS de executá-lo, a quota é um teto SUAVE: sob rajada concorrente pode
+ * haver um pequeno overshoot (as requisições em voo ainda não somaram). Para o
+ * uso self-hosted/pessoal isso é aceitável (limite de custo, não hard cap).
+ */
 export async function checkDailyQuota(key: ProxyKey): Promise<AuthError | null> {
   if (key.dailyTokenQuota == null) return null;
   const day = new Date().toISOString().slice(0, 10);

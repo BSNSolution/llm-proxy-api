@@ -24,12 +24,14 @@ export function Checkbox({
         className,
       )}
     >
-      <span
+      <button
+        type="button"
         role="checkbox"
         aria-checked={checked}
-        onClick={() => !disabled && onChange(!checked)}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
         className={cn(
-          'grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[6px] border transition-all duration-150 ease-smooth',
+          'grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[6px] border outline-none transition-all duration-150 ease-smooth focus-visible:ring-2 focus-visible:ring-primary/50',
           checked
             ? 'border-primary bg-primary text-primary-fg'
             : 'border-border-strong bg-surface-2 hover:border-fg-subtle',
@@ -40,7 +42,7 @@ export function Checkbox({
           strokeWidth={3}
           className={cn('transition-transform duration-150', checked ? 'scale-100' : 'scale-0')}
         />
-      </span>
+      </button>
       {label && <span className="text-fg-muted">{label}</span>}
     </label>
   );

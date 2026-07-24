@@ -1,6 +1,10 @@
 import {
+  cloneElement,
   forwardRef,
+  isValidElement,
+  useId,
   type InputHTMLAttributes,
+  type ReactElement,
   type ReactNode,
   type TextareaHTMLAttributes,
 } from 'react';
@@ -95,15 +99,25 @@ export function Field({
   // hint em TEXTO vira legenda abaixo do campo; hint como elemento (ex.: <HintTip/>)
   // fica ao lado do label, que é o uso original do ícone de ajuda.
   const hintIsText = typeof hint === 'string' || typeof hint === 'number';
+  // a11y: associa o label ao input via id (gerado), se o filho não trouxer um.
+  const autoId = useId();
+  let control = children;
+  if (isValidElement(children)) {
+    const child = children as ReactElement<{ id?: string }>;
+    control = cloneElement(child, { id: child.props.id ?? autoId });
+  }
+  const controlId = isValidElement(children)
+    ? ((children as ReactElement<{ id?: string }>).props.id ?? autoId)
+    : undefined;
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       {label && (
         <div className="flex items-center gap-1.5">
-          <Label>{label}</Label>
+          <Label htmlFor={controlId}>{label}</Label>
           {!hintIsText && hint}
         </div>
       )}
-      {children}
+      {control}
       {hintIsText && <p className="text-xs text-fg-subtle">{hint}</p>}
       {error && <p className="text-xs text-err">{error}</p>}
     </div>

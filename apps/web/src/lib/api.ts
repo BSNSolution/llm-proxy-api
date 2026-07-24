@@ -234,60 +234,10 @@ export interface ChatAttachment {
   dataBase64?: string;
 }
 
-export async function streamChat(
-  sessionId: string,
-  body: {
-    content: string;
-    thinking?: boolean;
-    model?: string;
-    attachments?: ChatAttachment[];
-    imageMode?: boolean;
-  },
-  handlers: {
-    onDelta: (text: string) => void;
-    onThinking?: (text: string) => void;
-    onImage?: (url: string) => void;
-    onError?: (message: string) => void;
-    onDone?: (data: unknown) => void;
-  },
-): Promise<void> {
-  const res = await fetch(`/api/chat/sessions/${sessionId}/send`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.body) throw new Error('Sem corpo de resposta');
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const chunks = buffer.split('\n\n');
-    buffer = chunks.pop() ?? '';
-    for (const chunk of chunks) {
-      const lines = chunk.split('\n');
-      let event = 'message';
-      let data = '';
-      for (const line of lines) {
-        if (line.startsWith('event:')) event = line.slice(6).trim();
-        else if (line.startsWith('data:')) data += line.slice(5).trim();
-      }
-      if (!data) continue;
-      const parsed = JSON.parse(data) as Record<string, unknown>;
-      if (event === 'delta') handlers.onDelta(String(parsed.text ?? ''));
-      else if (event === 'thinking') handlers.onThinking?.(String(parsed.text ?? ''));
-      else if (event === 'image') handlers.onImage?.(String(parsed.url ?? ''));
-      else if (event === 'error') handlers.onError?.(String(parsed.message ?? 'erro'));
-      else if (event === 'done') handlers.onDone?.(parsed);
-    }
-  }
-}
-
 /**
  * Consome um endpoint SSE (event/data) via fetch POST, chamando `onEvent`
- * para cada evento com o nome e o payload parseado. Usado pelo wizard de setup.
+ * para cada evento com o nome e o payload parseado. Base de streamChat e
+ * streamInstall/streamLogin.
  */
 export async function streamSse(
   path: string,
@@ -327,6 +277,32 @@ export async function streamSse(
       }
     }
   }
+}
+
+export async function streamChat(
+  sessionId: string,
+  body: {
+    content: string;
+    thinking?: boolean;
+    model?: string;
+    attachments?: ChatAttachment[];
+    imageMode?: boolean;
+  },
+  handlers: {
+    onDelta: (text: string) => void;
+    onThinking?: (text: string) => void;
+    onImage?: (url: string) => void;
+    onError?: (message: string) => void;
+    onDone?: (data: unknown) => void;
+  },
+): Promise<void> {
+  await streamSse(`/api/chat/sessions/${sessionId}/send`, body, (event, parsed) => {
+    if (event === 'delta') handlers.onDelta(String(parsed.text ?? ''));
+    else if (event === 'thinking') handlers.onThinking?.(String(parsed.text ?? ''));
+    else if (event === 'image') handlers.onImage?.(String(parsed.url ?? ''));
+    else if (event === 'error') handlers.onError?.(String(parsed.message ?? 'erro'));
+    else if (event === 'done') handlers.onDone?.(parsed);
+  });
 }
 
 /** Instala uma CLI, emitindo progresso ao vivo. */

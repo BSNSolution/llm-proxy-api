@@ -40,6 +40,7 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
             <Field label="Email">
               <Input
                 icon={<Mail size={15} />}
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="username"

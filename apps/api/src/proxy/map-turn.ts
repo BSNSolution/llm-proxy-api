@@ -57,6 +57,18 @@ export interface OpenAiMessage {
  * - última user → userMessage
  * - resto → history
  */
+/**
+ * Remove a ÚLTIMA mensagem 'user' de `rest` (mutando o array) e a retorna como
+ * a userMessage do turno. Se não houver, devolve uma user vazia.
+ */
+function takeLastUserMessage(rest: TurnMessage[]): TurnMessage {
+  const lastUserIdx = [...rest].reverse().findIndex((m) => m.role === 'user');
+  if (lastUserIdx === -1) return { role: 'user', content: '' };
+  const idx = rest.length - 1 - lastUserIdx;
+  const [msg] = rest.splice(idx, 1);
+  return msg ?? { role: 'user', content: '' };
+}
+
 export function openAiToTurn(
   kind: CliKind,
   messages: OpenAiMessage[],
@@ -76,13 +88,7 @@ export function openAiToTurn(
       ...(parsed.attachments.length ? { attachments: parsed.attachments } : {}),
     });
   }
-  const lastUserIdx = [...rest].reverse().findIndex((m) => m.role === 'user');
-  let userMessage: TurnMessage = { role: 'user', content: '' };
-  if (lastUserIdx !== -1) {
-    const idx = rest.length - 1 - lastUserIdx;
-    userMessage = rest[idx]!;
-    rest.splice(idx, 1);
-  }
+  const userMessage = takeLastUserMessage(rest);
   return {
     kind,
     systemPrompt,
@@ -122,13 +128,7 @@ export function anthropicToTurn(
     role: m.role,
     content: anthropicContentToText(m.content),
   }));
-  const lastUserIdx = [...rest].reverse().findIndex((m) => m.role === 'user');
-  let userMessage: TurnMessage = { role: 'user', content: '' };
-  if (lastUserIdx !== -1) {
-    const idx = rest.length - 1 - lastUserIdx;
-    userMessage = rest[idx]!;
-    rest.splice(idx, 1);
-  }
+  const userMessage = takeLastUserMessage(rest);
   return {
     kind,
     systemPrompt: system,
