@@ -89,6 +89,26 @@ Then open the app URL and create the admin account on first access.
 > (e.g. `~/.codex`, `~/.claude`, `~/.gemini`) and make the binaries available on PATH.
 > Alternatively, run the app directly on the machine that has the CLIs installed.
 
+### Run without local CLIs — HTTP provider mode (VPS / Cloudflare / any container)
+
+You don't need the CLIs to run in a server/container. In **Fontes & Combos** configure an
+**HTTP provider** API key (Anthropic, OpenAI or Gemini). The proxy then talks directly to
+that provider over HTTPS — mirroring the same CLI capabilities — so it works anywhere,
+including stateless environments with no OAuth on disk.
+
+The routing is **hybrid**: on a machine with the CLI installed the proxy uses the CLI
+(your subscription); where the CLI is missing it automatically falls back to the matching
+HTTP provider. Combos and the Capability Router honor both. This is only for providers that
+mirror the CLIs we already support — it is **not** a general provider catalog.
+
+### Prebuilt image (GHCR)
+
+```bash
+docker pull ghcr.io/bsnsolution/llm-proxy-api:latest
+```
+
+The image is published on push to `main` by the `docker-publish` workflow.
+
 ### Deploy with Dokploy / EasyPanel
 
 1. Point the panel to this repository (it detects `docker-compose.yml`).
@@ -104,7 +124,24 @@ Then open the app URL and create the admin account on first access.
 |----------|---------------------------------------------------|
 | Base URL | `http://<host>:8787/v1` (your proxy)              |
 | API Key  | the `sk-llmp-…` key you generated                 |
-| Model    | the CLI model (e.g. `sonnet`, `default`, …)       |
+| Model    | see the model values below                        |
+
+The `model` field accepts, besides a plain CLI model (e.g. `sonnet`, `default`):
+
+| `model` value        | What it does                                                        |
+|----------------------|--------------------------------------------------------------------|
+| `sonnet`, `default`… | Use that specific model on the key's CLI                           |
+| `combo:<slug>`       | Run a **combo** (ordered fallback across LLMs)                     |
+| `router`             | **Capability Router** — auto-detects the task and picks the LLM    |
+| `router:<slug>`      | A named router                                                     |
+| `cap:<capability>`   | Force a capability (e.g. `cap:analisar-imagem`, `cap:gerar-html`)  |
+
+Optional request headers:
+
+| Header                        | Effect                                              |
+|-------------------------------|-----------------------------------------------------|
+| `X-LLMProxy-Token-Saver: off` | Disable tool-output compression for this request    |
+| `X-LLMProxy-Terseness: caveman` \| `ponytail[:lite\|full\|ultra]` | Terse output style (fewer output tokens) |
 
 Works with anything that speaks the OpenAI or Anthropic API shape.
 
