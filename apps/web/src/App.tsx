@@ -8,6 +8,7 @@ import {
   MessagesSquare,
   Settings,
   Users,
+  Workflow,
   type LucideIcon,
 } from 'lucide-react';
 import { SetupPage } from './pages/Setup.js';
@@ -16,6 +17,7 @@ import { ChatPage } from './pages/Chat.js';
 import { ConfigPage } from './pages/Config.js';
 import { UsagePage } from './pages/Usage.js';
 import { UsersPage } from './pages/Users.js';
+import { RouterPage } from './pages/Router.js';
 import { LoginPage } from './pages/Login.js';
 import { SetupAdminPage } from './pages/SetupAdmin.js';
 import { Logo, LogoMark } from './components/logo.js';
@@ -30,6 +32,7 @@ const NAV: NavItem[] = [
   { to: '/proxy', label: 'Proxy API', icon: KeyRound, hint: 'Gerencie API keys, limites e a URL do proxy.' },
   { to: '/usage', label: 'Uso & Logs', icon: BarChart3, hint: 'Métricas de uso, tokens e histórico.' },
   { to: '/chat', label: 'Chat', icon: MessagesSquare, hint: 'Converse com suas LLMs pela interface.' },
+  { to: '/router', label: 'Router', icon: Workflow, hint: 'Defina qual LLM usa para cada função (1 key, várias especialistas).' },
   { to: '/config', label: 'Configurações', icon: Settings, hint: 'Ative CLIs e defina modelos padrão.' },
   { to: '/users', label: 'Usuários', icon: Users, hint: 'Usuários, papéis e sessões ativas.', adminOnly: true },
 ];
@@ -100,6 +103,7 @@ export function App() {
               <Route path="/proxy" element={<ProxyPage />} />
               <Route path="/usage" element={<UsagePage />} />
               <Route path="/chat" element={<ChatPage />} />
+              <Route path="/router" element={<RouterPage />} />
               <Route path="/config" element={<ConfigPage />} />
               {role === 'admin' && <Route path="/users" element={<UsersPage />} />}
             </Routes>

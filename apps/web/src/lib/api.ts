@@ -110,6 +110,61 @@ export interface SessionView {
   expiresAt: string;
 }
 
+// ── Capability Router / Combos ──────────────────────────────────────────────
+export interface FunctionMeta {
+  slug: string;
+  label: string;
+  group: 'gerar' | 'analisar' | 'especial';
+  icon: string;
+  inputModality?: string;
+  hint: string;
+}
+export interface CapabilityMatrix {
+  functions: FunctionMeta[];
+  byCli: Record<string, string[]>;
+}
+export interface ComboItemView {
+  id: string;
+  order: number;
+  source: 'cli' | 'http';
+  cliKind: string | null;
+  provider: string | null;
+  model: string | null;
+}
+export interface ComboView {
+  id: string;
+  slug: string;
+  name: string;
+  strategy: string;
+  enabled: boolean;
+  items: ComboItemView[];
+}
+export interface RouterRuleView {
+  id: string;
+  capability: string;
+  source: 'cli' | 'http' | null;
+  cliKind: string | null;
+  provider: string | null;
+  model: string | null;
+  comboId: string | null;
+}
+export interface RouterView {
+  id: string;
+  slug: string;
+  name: string;
+  isDefault: boolean;
+  enabled: boolean;
+  rules: RouterRuleView[];
+}
+export interface HttpProviderView {
+  provider: string;
+  enabled: boolean;
+  baseUrl: string | null;
+  keySet: boolean;
+  keyMasked: string;
+  updatedAt: string;
+}
+
 export const api = {
   // auth
   authStatus: () => req<{ needsSetup: boolean }>('/api/auth/status'),
@@ -207,6 +262,38 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ loginId }),
     }),
+
+  // capabilities (matriz p/ a tela inteligente)
+  capabilities: (all?: boolean) =>
+    req<{ matrix: CapabilityMatrix; available: string[] }>(`/api/capabilities${all ? '?all=1' : ''}`),
+
+  // combos
+  listCombos: () => req<{ combos: ComboView[] }>('/api/combos'),
+  createCombo: (data: Record<string, unknown>) =>
+    req<{ combo: ComboView }>('/api/combos', { method: 'POST', body: JSON.stringify(data) }),
+  updateCombo: (id: string, data: Record<string, unknown>) =>
+    req<{ combo: ComboView }>(`/api/combos/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteCombo: (id: string) => req<{ ok: boolean }>(`/api/combos/${id}`, { method: 'DELETE' }),
+
+  // routers (workflow)
+  listRouters: () => req<{ routers: RouterView[] }>('/api/routers'),
+  createRouter: (data: Record<string, unknown>) =>
+    req<{ router: RouterView }>('/api/routers', { method: 'POST', body: JSON.stringify(data) }),
+  updateRouter: (id: string, data: Record<string, unknown>) =>
+    req<{ router: RouterView }>(`/api/routers/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteRouter: (id: string) => req<{ ok: boolean }>(`/api/routers/${id}`, { method: 'DELETE' }),
+  detectCapability: (text: string) =>
+    req<{ capability: string | null }>('/api/routers/detect', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+
+  // http providers (keys diretas p/ deploy container/VPS/fallback)
+  listHttpProviders: () => req<{ providers: HttpProviderView[] }>('/api/http-providers'),
+  upsertHttpProvider: (data: { provider: string; apiKey: string; baseUrl?: string | null; enabled?: boolean }) =>
+    req<{ ok: boolean }>('/api/http-providers', { method: 'POST', body: JSON.stringify(data) }),
+  deleteHttpProvider: (provider: string) =>
+    req<{ ok: boolean }>(`/api/http-providers/${provider}`, { method: 'DELETE' }),
 };
 
 export interface SetupPlanView {
