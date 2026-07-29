@@ -45,18 +45,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=dokploy-network
-      # HTTP → redirect p/ HTTPS
-      - traefik.http.routers.llmp-web.rule=Host(`llm.bsnsolution.com.br`)
-      - traefik.http.routers.llmp-web.entrypoints=web
-      - traefik.http.routers.llmp-web.middlewares=redirect-to-https@file
-      # HTTPS + letsencrypt
-      - traefik.http.routers.llmp-websecure.rule=Host(`llm.bsnsolution.com.br`)
-      - traefik.http.routers.llmp-websecure.entrypoints=websecure
-      - traefik.http.routers.llmp-websecure.tls.certresolver=letsencrypt
-      - traefik.http.services.llmp-app.loadbalancer.server.port=8787
+    # Domínio/HTTPS: gerenciado pelo Dokploy (domain API → llmp-app:8787,
+    # letsencrypt). NÃO declarar labels Traefik manuais aqui (duplicaria o
+    # roteador que o Dokploy gera a partir do domínio configurado no painel).
 
   llmp-postgres:
     image: postgres:17-alpine
