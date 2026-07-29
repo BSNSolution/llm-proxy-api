@@ -3,6 +3,10 @@
 
 generator client {
   provider = "prisma-client-js"
+  // O runtime Docker (bookworm-slim) usa OpenSSL 3.0; o dev local pode variar.
+  // Sem isto o Prisma gera só p/ o SO do build (às vezes openssl-1.1.x) e o
+  // runtime não acha o Query Engine → toda query falha (500 no login).
+  binaryTargets = ["native", "debian-openssl-3.0.x", "debian-openssl-1.1.x"]
 }
 
 datasource db {
