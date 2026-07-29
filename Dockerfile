@@ -34,11 +34,17 @@ ENV NODE_ENV=production
 ENV IMAGES_DIR=/data/images
 RUN mkdir -p /data/images
 
-# Copia o necessário para rodar (app buildado + node_modules + prisma + workspace).
+# Copia o necessário para rodar. IMPORTANTE (pnpm): as deps de terceiros que o
+# tsup deixa external (zod, fastify, ioredis, @fastify/*) resolvem a partir de
+# apps/api/node_modules (symlinks p/ o .pnpm store no root). Copiar SÓ o
+# node_modules root deixa main.js sem 'zod' → ERR_MODULE_NOT_FOUND. Por isso
+# copiamos o node_modules root (store .pnpm) + o de apps/api (os symlinks).
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=build /app/packages ./packages
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/web/dist ./apps/web/dist
+COPY --from=build /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY infra/docker-entrypoint.sh ./infra/docker-entrypoint.sh
