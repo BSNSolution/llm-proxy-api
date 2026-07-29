@@ -24,6 +24,9 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @llm-proxy/db exec prisma generate
 
+      - name: Lint
+        run: pnpm lint
+
       - name: Typecheck
         run: pnpm typecheck
 

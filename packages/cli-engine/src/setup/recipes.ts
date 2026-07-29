@@ -1,5 +1,5 @@
 import type { CliKind } from '@llm-proxy/shared-types';
-import type { InstallStep, LoginEvent, LoginRecipe, SetupRecipe } from './types.js';
+import type { InstallStep, LoginEvent, SetupRecipe } from './types.js';
 
 /**
  * Receitas REAIS de instalação e login das 6 CLIs core.

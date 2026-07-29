@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button.js';
 import { Card } from '../components/ui/card.js';
 import { Badge } from '../components/ui/badge.js';
 import { Field, Input } from '../components/ui/input.js';
-import { Select, toOptions } from '../components/ui/select.js';
+import { Select } from '../components/ui/select.js';
 import { Switch } from '../components/ui/toggle.js';
 import { PageHeader, EmptyState } from '../components/ui/page-header.js';
 import { Pagination, usePagination } from '../components/ui/pagination.js';

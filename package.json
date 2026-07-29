@@ -2,6 +2,7 @@
   "name": "llm-proxy-api",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Turn your installed AI coding CLIs into an OpenAI/Anthropic-compatible API. Self-hosted.",
   "license": "MIT",
   "repository": {
@@ -45,9 +46,12 @@
     "docker:dev:down": "docker compose -f infra/compose/docker-compose.dev.yml down"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.10.5",
+    "eslint": "^10.8.0",
     "prettier": "^3.4.2",
     "turbo": "^2.3.3",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.65.0"
   }
 }

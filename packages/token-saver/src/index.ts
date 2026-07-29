@@ -13,7 +13,7 @@ const DETECT_WINDOW = 1024;
 const RE_GIT_DIFF = /^diff --git |^@@ /m;
 const RE_GIT_STATUS = /^On branch |^nothing to commit|^Changes (not |to be )|^Untracked files:/m;
 const RE_GREP = /^[^:\n]+:\d+:/m;
-const RE_TREE = /[├└]──|│  /;
+const RE_TREE = /[├└]──|│ {2}/;
 const RE_LS = /^total \d+$|^[-dl][rwx-]{9}/m;
 
 /** Escolhe o filtro apropriado olhando o início do texto. null = sem filtro. */

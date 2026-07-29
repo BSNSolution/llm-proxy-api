@@ -8,7 +8,6 @@ import { Modal } from '../components/ui/modal.js';
 import { PageHeader, EmptyState } from '../components/ui/page-header.js';
 import { HintTip } from '../components/ui/tooltip.js';
 import { CliIcon, CLI_LABELS } from '../components/cli-card.js';
-import { cn } from '../lib/cn.js';
 
 const HTTP_PROVIDERS = [
   { id: 'anthropic', label: 'Anthropic (Claude)', hint: 'Espelha a CLI Claude via API key — usado em container/VPS ou como fallback.' },

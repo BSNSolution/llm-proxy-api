@@ -10,7 +10,16 @@ web panel to manage keys, users, usage and an interactive chat.
 
 Self-hosted · single binary experience · runs on your machine or via Docker.
 
+![CI](https://github.com/BSNSolution/llm-proxy-api/actions/workflows/ci.yml/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Node](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)
+[![GHCR](https://img.shields.io/badge/image-ghcr.io%2Fbsnsolution%2Fllm--proxy--api-blue?logo=docker)](https://github.com/BSNSolution/llm-proxy-api/pkgs/container/llm-proxy-api)
+
 </div>
+
+> **Note on language:** the web panel is currently **Portuguese (pt-BR)** only —
+> labels, tooltips and the `cap:` slugs. The API is language-neutral. i18n is a
+> great first contribution — see [CONTRIBUTING](CONTRIBUTING.md).
 
 ---
 
@@ -145,23 +154,50 @@ The `model` field accepts, besides a plain CLI model (e.g. `sonnet`, `default`):
 | `sonnet`, `default`… | Use that specific model on the key's CLI                           |
 | `combo:<slug>`       | Run a **combo** (ordered fallback across LLMs)                     |
 | `router`             | **Capability Router** — auto-detects the task and picks the LLM    |
-| `router:<slug>`      | A named router                                                     |
-| `cap:<capability>`   | Force a capability (e.g. `cap:analisar-imagem`, `cap:gerar-html`)  |
+| `router:<slug>`      | A named router (its slug is shown on the Router page)              |
+| `cap:<capability>`   | Force a capability — one of the slugs below                        |
+
+**Capability slugs** (for `cap:<slug>` and the Router rules):
+
+| Generate | Analyze | Special |
+|---|---|---|
+| `gerar-texto` · `gerar-codigo` · `gerar-html` · `gerar-imagem` · `gerar-audio` · `gerar-video` | `analisar-texto` · `analisar-codigo` · `analisar-imagem` · `analisar-video` · `analisar-audio` · `analisar-pdf` · `analisar-planilha` · `analisar-slides` | `transcrever-audio` · `web-search` · `embeddings` |
+
+> Slugs are Portuguese (matching the panel). Which LLM can do each is shown per-block
+> on the **Router** page — it only offers models that actually support that function.
 
 Optional request headers:
 
-| Header                        | Effect                                              |
-|-------------------------------|-----------------------------------------------------|
-| `X-LLMProxy-Token-Saver: off` | Disable tool-output compression for this request    |
-| `X-LLMProxy-Terseness: caveman` \| `ponytail[:lite\|full\|ultra]` | Terse output style (fewer output tokens) |
+| Header | Effect |
+|---|---|
+| `X-LLMProxy-Token-Saver: off` | Disable tool-output compression for this request |
+| `X-LLMProxy-Terseness: <mode>[:<level>]` | Terse output style. `<mode>` = `caveman` \| `ponytail`; `<level>` = `lite` \| `full` \| `ultra` (default `full`). E.g. `caveman:ultra`. |
 
 Works with anything that speaks the OpenAI or Anthropic API shape.
 
+## API reference
+
+Base URL: `http://<host>:8787`. All `/v1/*` routes require a proxy key
+(`Authorization: Bearer sk-llmp-…` or `x-api-key:`).
+
+| Route | Shape |
+|---|---|
+| `GET /health` | Liveness (no auth) — `{"ok":true}` |
+| `GET /v1/models` | OpenAI — lists the key's allowed models |
+| `POST /v1/chat/completions` | OpenAI — chat (SSE when `stream:true`) |
+| `POST /v1/messages` | Anthropic — messages (SSE events) |
+| `POST /v1/images/generations` | OpenAI-style image generation (CLIs that support it, e.g. Codex/GPT-Image) |
+
 ```bash
+# OpenAI-compatible
 curl http://localhost:8787/v1/chat/completions \
-  -H "Authorization: Bearer sk-llmp-..." \
-  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer sk-llmp-..." -H "Content-Type: application/json" \
   -d '{"model":"sonnet","messages":[{"role":"user","content":"Hello"}]}'
+
+# Anthropic-compatible
+curl http://localhost:8787/v1/messages \
+  -H "x-api-key: sk-llmp-..." -H "Content-Type: application/json" \
+  -d '{"model":"router","max_tokens":512,"messages":[{"role":"user","content":"Hello"}]}'
 ```
 
 ## Security
