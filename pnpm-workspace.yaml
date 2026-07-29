@@ -11,7 +11,7 @@ overrides:
   # react-router 7→8 (CSRF RSC) NÃO aplicado: usamos SPA client-side (RSC não é
   # usado) e o major traria breaking changes — fica como task de baixo risco.
   brace-expansion: "^5.0.8"
-  "@fastify/static": "^9.1.1"
+  "@fastify/static": "^10.1.1"
 
 # pnpm 11 bloqueia build scripts de deps por padrão; em CI (não-interativo) isso
 # aborta o install com ERR_PNPM_IGNORED_BUILDS. `allowBuilds` (substituto de
