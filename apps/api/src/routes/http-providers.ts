@@ -18,20 +18,44 @@ function isSafeBaseUrl(raw: string): boolean {
   } catch {
     return false;
   }
-  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(u.hostname))) {
+  // Só https (http apenas p/ localhost em dev). new URL entrega IPv6 COM colchetes
+  // (ex.: "[::1]") — removemos p/ comparar; o resto do check usa o host limpo.
+  const h = u.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && (h === 'localhost' || h === '127.0.0.1'))) {
     return false;
   }
-  const h = u.hostname;
+  if (h.endsWith('.internal') || h.endsWith('.local') || h === 'metadata.google.internal') return false;
+
+  // IPv6 (URL entrega sem os colchetes): bloqueia loopback ::1, ULA fc00::/7,
+  // link-local fe80::/10, unspecified ::, e IPv4-mapped ::ffff:a.b.c.d.
+  if (h.includes(':')) {
+    if (h === '::1' || h === '::') return false;
+    if (/^f[cd]/.test(h)) return false; // fc00::/7 (ULA)
+    if (/^fe[89ab]/.test(h)) return false; // fe80::/10 (link-local)
+    // IPv4-mapped (::ffff:x). new URL normaliza p/ hex (::ffff:a9fe:a9fe), então
+    // não dá p/ inspecionar o IPv4 — e não há uso legítimo. Bloqueia todos.
+    if (h.startsWith('::ffff:')) return false;
+    return true;
+  }
+
+  // IPv4 dotted-decimal → checa faixas privadas. Qualquer forma NÃO dotted-decimal
+  // que seja puramente numérica (decimal 2130706433, hex 0x7f000001, octal) é
+  // recusada — não há uso legítimo e são vetores de bypass p/ loopback.
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) return isSafeIpv4(h);
+  if (/^(0x[0-9a-f]+|\d+)$/.test(h)) return false; // IP numérico não-dotted (dec/hex/octal)
+  return true; // hostname normal (ex.: api.openai.com)
+}
+
+/** true se o IPv4 dotted-decimal NÃO é privado/loopback/link-local/metadata. */
+function isSafeIpv4(ip: string): boolean {
   const blocked =
-    h === '169.254.169.254' || // metadata AWS/GCP/Azure
-    h === 'metadata.google.internal' ||
-    /^10\./.test(h) ||
-    /^192\.168\./.test(h) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
-    /^169\.254\./.test(h) ||
-    (/^127\./.test(h) && h !== '127.0.0.1') ||
-    h.endsWith('.internal') ||
-    h.endsWith('.local');
+    /^169\.254\./.test(ip) || // link-local + metadata 169.254.169.254
+    /^10\./.test(ip) ||
+    /^192\.168\./.test(ip) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(ip) ||
+    /^127\./.test(ip) || // loopback inteiro (127.0.0.0/8)
+    ip === '0.0.0.0' ||
+    /^0\./.test(ip); // 0.0.0.0/8 (roteia p/ loopback em muitos SOs)
   return !blocked;
 }
 
