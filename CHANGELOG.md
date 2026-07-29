@@ -21,8 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Terseness** — Caveman / Ponytail output styles to cut output tokens, per-key or
   via `X-LLMProxy-Terseness` header.
 - **Real-time quota** — per-key daily token usage with a live reset countdown.
-- **Deploy examples** for Dokploy, EasyPanel, VPS+Traefik and VPS+Caddy (`deploy/`),
-  plus a published image on GHCR.
+- **Bilingual panel (pt-BR / en)** with a language switcher in the sidebar.
+- **Deploy examples** for Dokploy, EasyPanel, Coolify, Render, Railway, VPS+Traefik
+  and VPS+Caddy (`deploy/`), plus a published image on GHCR and screenshots.
 - **API reference** in the README (routes, capability slugs, curl examples) and an
   ESLint setup wired into CI.
 

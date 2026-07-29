@@ -17,9 +17,9 @@ Self-hosted · single binary experience · runs on your machine or via Docker.
 
 </div>
 
-> **Note on language:** the web panel is currently **Portuguese (pt-BR)** only —
-> labels, tooltips and the `cap:` slugs. The API is language-neutral. i18n is a
-> great first contribution — see [CONTRIBUTING](CONTRIBUTING.md).
+> **Languages:** the web panel is bilingual — **Portuguese (pt-BR)** and **English** —
+> with a switcher in the sidebar (defaults to your browser language). More languages
+> are welcome: add a dictionary in `apps/web/src/lib/i18n/`.
 
 ---
 
