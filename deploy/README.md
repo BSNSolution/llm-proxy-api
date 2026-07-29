@@ -5,14 +5,18 @@ Escolha o que combina com o seu ambiente:
 
 | Você usa… | Use o exemplo | Domínio/HTTPS |
 |---|---|---|
-| **Dokploy** | [`dokploy/`](./dokploy/) | Configurado no painel do Dokploy (Traefik + Let's Encrypt) |
-| **EasyPanel** | [`easypanel/`](./easypanel/) | Configurado no painel do EasyPanel |
+| **Dokploy** | [`dokploy/`](./dokploy/) | Configurado no painel (Traefik + Let's Encrypt) |
+| **EasyPanel** | [`easypanel/`](./easypanel/) | Configurado no painel |
+| **Coolify** | [`coolify/`](./coolify/) | Configurado no painel |
+| **Render** | [`render/`](./render/) | Blueprint `render.yaml` (web + PG + Redis gerenciados) |
+| **Railway** | [`railway/`](./railway/) | `railway.json` + plugins Postgres/Redis |
 | **VPS "na mão" com Traefik** | [`vps-traefik/`](./vps-traefik/) | Labels Traefik + Let's Encrypt no próprio compose |
 | **VPS "na mão" com Caddy** | [`vps-caddy/`](./vps-caddy/) | Caddy faz HTTPS automático (mais simples) |
-| **Só quero testar local** | [`../docker-compose.yml`](../docker-compose.yml) (raiz) | Sem HTTPS, acesso por `localhost:8787` |
+| **Só Docker (sem reverse proxy)** | [`../docker-compose.yml`](../docker-compose.yml) (raiz) | Sem HTTPS — acesso por `IP:8787`, coloque um proxy/tailnet na frente |
 
-> O `docker-compose.yml` na raiz do repo é o "genérico" (local/teste). Os exemplos aqui
-> são versões **prontas para produção** com nomes de serviço únicos e reverse proxy.
+> O `docker-compose.yml` na raiz é o "genérico" (local/teste ou só-Docker). Os exemplos
+> em subpastas são versões **prontas para produção** com nomes de serviço únicos e
+> reverse proxy (ou blueprint do PaaS).
 
 ---
 
