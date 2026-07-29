@@ -159,6 +159,26 @@ interface SseEvent {
   raw: string;
 }
 
+/** Parseia UM bloco SSE (linhas event:/data:) em SseEvent, ou null se sem data. */
+function parseBlock(block: string): SseEvent | null {
+  let event: string | undefined;
+  let dataStr = '';
+  for (const line of block.split('\n')) {
+    if (line.startsWith('event:')) event = line.slice(6).trim();
+    else if (line.startsWith('data:')) dataStr += line.slice(5).trim();
+  }
+  if (!dataStr) return null;
+  let data: any = dataStr;
+  if (dataStr !== '[DONE]') {
+    try {
+      data = JSON.parse(dataStr);
+    } catch {
+      /* mantém string */
+    }
+  }
+  return { event, data, raw: block };
+}
+
 async function* parseSse(stream: ReadableStream<Uint8Array>): AsyncGenerator<SseEvent> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -173,23 +193,18 @@ async function* parseSse(stream: ReadableStream<Uint8Array>): AsyncGenerator<Sse
       while ((idx = buf.indexOf('\n\n')) !== -1) {
         const block = buf.slice(0, idx);
         buf = buf.slice(idx + 2);
-        let event: string | undefined;
-        let dataStr = '';
-        for (const line of block.split('\n')) {
-          if (line.startsWith('event:')) event = line.slice(6).trim();
-          else if (line.startsWith('data:')) dataStr += line.slice(5).trim();
-        }
-        if (!dataStr) continue;
-        let data: any = dataStr;
-        if (dataStr !== '[DONE]') {
-          try {
-            data = JSON.parse(dataStr);
-          } catch {
-            /* mantém string */
-          }
-        }
-        yield { event, data, raw: block };
+        const evt = parseBlock(block);
+        if (evt) yield evt;
       }
+    }
+    // Flush final: alguns provedores/proxies fecham o stream sem o \n\n final —
+    // o último evento (ex.: usage do OpenAI, message_delta do Anthropic, [DONE])
+    // ficaria no buffer e seria perdido. Emite o que restou.
+    buf += decoder.decode();
+    const tail = buf.trim();
+    if (tail) {
+      const evt = parseBlock(tail);
+      if (evt) yield evt;
     }
   } finally {
     reader.releaseLock();

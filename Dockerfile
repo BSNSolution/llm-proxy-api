@@ -30,6 +30,11 @@ RUN pnpm build
 # ---- runtime ----
 FROM base AS runtime
 ENV NODE_ENV=production
+# OpenSSL: o bookworm-slim não traz libssl; sem ele o Prisma Query Engine avisa
+# "failed to detect libssl" e pode falhar em runtime. Instala openssl + ca-certs
+# (também necessário p/ as fontes HTTP alcançarem os providers por TLS).
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 # Diretório de imagens geradas — montado como VOLUME no compose (persiste em rebuild).
 ENV IMAGES_DIR=/data/images
 RUN mkdir -p /data/images

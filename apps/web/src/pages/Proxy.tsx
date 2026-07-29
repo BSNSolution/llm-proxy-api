@@ -30,6 +30,9 @@ export function ProxyPage() {
   /** CLIs presentes na máquina + ativas no proxy (só essas geram key útil) */
   const [presentKinds, setPresentKinds] = useState<Set<string>>(new Set());
   const [enabledKinds, setEnabledKinds] = useState<Set<string>>(new Set());
+  // CLIs que têm um provider HTTP equivalente configurado (modo híbrido: dá p/
+  // criar key mesmo sem a CLI local — o proxy despacha via API key).
+  const [httpKinds, setHttpKinds] = useState<Set<string>>(new Set());
 
   const pg = usePagination(keys, 8);
 
@@ -39,16 +42,24 @@ export function ProxyPage() {
       [...CLI_KINDS].map((kind) => {
         const present = presentKinds.has(kind);
         const enabled = enabledKinds.has(kind);
-        const usable = present && enabled;
+        const http = httpKinds.has(kind);
+        // Usável se a CLI está instalada+ativa OU há um provider HTTP configurado.
+        const usable = (present && enabled) || http;
         return {
           value: kind,
           label: CLI_LABELS[kind] ?? kind,
           icon: <CliIcon kind={kind} size={15} />,
           disabled: !usable,
-          hint: !present ? 'não instalada' : !enabled ? 'inativa no proxy' : undefined,
+          hint: usable
+            ? http && !present
+              ? 'via HTTP'
+              : undefined
+            : !present
+              ? 'não instalada'
+              : 'inativa no proxy',
         };
       }),
-    [presentKinds, enabledKinds],
+    [presentKinds, enabledKinds, httpKinds],
   );
   const noUsableCli = cliOptions.every((o) => o.disabled);
 
@@ -62,12 +73,23 @@ export function ProxyPage() {
   }
 
   async function loadCliState() {
-    const [{ detected }, { configs }] = await Promise.all([
+    const [{ detected }, { configs }, http] = await Promise.all([
       api.detectCached().catch(() => ({ detected: [] })),
       api.listConfig().catch(() => ({ configs: [] })),
+      api.listHttpProviders().catch(() => ({ providers: [] })),
     ]);
     setPresentKinds(new Set(detected.filter((c) => c.present).map((c) => c.kind)));
     setEnabledKinds(new Set(configs.filter((c) => c.enabled).map((c) => c.kind)));
+    // provider HTTP configurado → habilita a CLI espelhada.
+    const HTTP_TO_CLI: Record<string, string> = { anthropic: 'claude', openai: 'codex', gemini: 'gemini' };
+    setHttpKinds(
+      new Set(
+        http.providers
+          .filter((p) => p.keySet && p.enabled)
+          .map((p) => HTTP_TO_CLI[p.provider])
+          .filter((k): k is string => !!k),
+      ),
+    );
   }
 
   useEffect(() => {

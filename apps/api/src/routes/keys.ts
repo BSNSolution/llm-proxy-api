@@ -4,7 +4,9 @@ import { generateProxyKey, hashSecret } from '@llm-proxy/crypto';
 import { prisma } from '@llm-proxy/db';
 import { CLI_KINDS } from '@llm-proxy/shared-types';
 import { loadConfig } from '@llm-proxy/config';
+import { CLI_TO_HTTP_PROVIDER } from '@llm-proxy/cli-engine';
 import { usedTokensToday } from '../services/proxy-auth.js';
+import { getHttpKeys } from '../services/http-providers.js';
 import { writeAudit } from '../services/audit.js';
 
 /**
@@ -144,11 +146,22 @@ export function registerKeyRoutes(app: FastifyInstance): void {
     const parsed = CreateKey.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: parsed.error.message });
     const b = parsed.data;
-    // Defesa em profundidade: não criar key para uma CLI que não está instalada
-    // (a UI já desabilita, mas o backend valida — key p/ CLI ausente é sempre inútil).
-    const detected = await prisma.detectedCli.findUnique({ where: { kind: b.cliKind } });
-    if (!detected?.present) {
-      return reply.status(400).send({ error: 'Esta CLI não está instalada na máquina.' });
+    // A key é útil se a CLI está instalada (usa a subscription local) OU se há um
+    // provider HTTP equivalente configurado (modo híbrido: container/VPS sem CLI
+    // despacha via API key — resolve-target faz o espelho CLI→HTTP). Só recusa
+    // quando não há NENHUMA das duas fontes p/ essa CLI.
+    const [detected, httpKeys] = await Promise.all([
+      prisma.detectedCli.findUnique({ where: { kind: b.cliKind } }),
+      getHttpKeys(),
+    ]);
+    const httpMirror = CLI_TO_HTTP_PROVIDER[b.cliKind];
+    const hasHttp = httpMirror ? !!httpKeys[httpMirror] : false;
+    if (!detected?.present && !hasHttp) {
+      return reply.status(400).send({
+        error: httpMirror
+          ? `Sem fonte para "${b.cliKind}": instale a CLI, ou configure a API key ${httpMirror} em Fontes & Combos.`
+          : 'Esta CLI não está instalada na máquina.',
+      });
     }
     const ownerId = await resolveOwnerId(req.authUser?.id);
     const { raw, prefix } = generateProxyKey();
