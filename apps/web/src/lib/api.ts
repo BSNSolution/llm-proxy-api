@@ -29,9 +29,16 @@ async function friendlyError(res: Response): Promise<string> {
 
 /** Cliente HTTP fino para a API interna. */
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
+  // Só declara Content-Type: application/json quando REALMENTE há corpo. POSTs
+  // sem body (detect, logout, rotate, revoke) não podem mandar esse header, senão
+  // o Fastify rejeita com "Body cannot be empty when content-type is application/json".
+  const temBody = init?.body != null;
   const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
     ...init,
+    headers: {
+      ...(temBody ? { 'Content-Type': 'application/json' } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
   if (!res.ok) {
     throw new Error(await friendlyError(res));
