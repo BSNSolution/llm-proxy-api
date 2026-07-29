@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@llm-proxy/db';
 import { CLI_KINDS } from '@llm-proxy/shared-types';
 import { writeAudit } from '../services/audit.js';
+import { resolveOwnerId } from '../services/owner.js';
 
 // Um item do combo: fonte CLI (cliKind) ou HTTP (provider) + model opcional.
 const ComboItemInput = z
@@ -32,13 +33,6 @@ const UpdateCombo = z.object({
   enabled: z.boolean().optional(),
   items: z.array(ComboItemInput).min(1).optional(),
 });
-
-async function resolveOwnerId(reqUserId?: string): Promise<string> {
-  if (reqUserId) return reqUserId;
-  const admin = await prisma.user.findFirst({ where: { role: 'admin' }, orderBy: { createdAt: 'asc' } });
-  if (!admin) throw new Error('Nenhum admin cadastrado (rode o seed).');
-  return admin.id;
-}
 
 export function registerComboRoutes(app: FastifyInstance): void {
   // Lista os combos do usuário.

@@ -7,6 +7,7 @@ import { loadConfig } from '@llm-proxy/config';
 import { CLI_TO_HTTP_PROVIDER } from '@llm-proxy/cli-engine';
 import { usedTokensToday } from '../services/proxy-auth.js';
 import { getHttpKeys } from '../services/http-providers.js';
+import { resolveOwnerId } from '../services/owner.js';
 import { writeAudit } from '../services/audit.js';
 
 /**
@@ -43,13 +44,6 @@ const UpdateKey = z.object({
   enabled: z.boolean().optional(),
   expiresAt: z.string().datetime().nullable().optional(),
 });
-
-async function resolveOwnerId(reqUserId?: string): Promise<string> {
-  if (reqUserId) return reqUserId;
-  const admin = await prisma.user.findFirst({ where: { role: 'admin' }, orderBy: { createdAt: 'asc' } });
-  if (!admin) throw new Error('Nenhum admin cadastrado (rode o seed).');
-  return admin.id;
-}
 
 export function registerKeyRoutes(app: FastifyInstance): void {
   // Info pública do proxy (base URLs) — p/ preview fixo na UI.

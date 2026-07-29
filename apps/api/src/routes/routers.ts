@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@llm-proxy/db';
 import { CLI_KINDS, FUNCTION_CAPABILITIES } from '@llm-proxy/shared-types';
 import { writeAudit } from '../services/audit.js';
+import { resolveOwnerId } from '../services/owner.js';
 import { detectCapability } from '../services/detect-capability.js';
 
 // Uma regra: capacidade → destino (fonte direta OU combo).
@@ -35,13 +36,6 @@ const UpdateRouter = z.object({
   enabled: z.boolean().optional(),
   rules: z.array(RuleInput).optional(),
 });
-
-async function resolveOwnerId(reqUserId?: string): Promise<string> {
-  if (reqUserId) return reqUserId;
-  const admin = await prisma.user.findFirst({ where: { role: 'admin' }, orderBy: { createdAt: 'asc' } });
-  if (!admin) throw new Error('Nenhum admin cadastrado (rode o seed).');
-  return admin.id;
-}
 
 /** Só um router pode ser default por dono — desmarca os outros. */
 async function ensureSingleDefault(tx: typeof prisma, ownerId: string, keepId: string): Promise<void> {
