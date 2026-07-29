@@ -1,6 +1,7 @@
 # =====================================================================
-# LLM Proxy API — compose para DOKPLOY (cloud.bsnsolution.com.br)
-# Domínio: https://llm.bsnsolution.com.br  (wildcard *.bsnsolution.com.br já na CF)
+# LLM Proxy API — compose para DOKPLOY
+# O domínio/HTTPS é configurado no PAINEL do Dokploy (aba Domains do serviço),
+# apontando para o serviço `llmp-app` na porta 8787 com Let's Encrypt.
 #
 # ⚠️ dokploy-network é COMPARTILHADA entre projetos → nomes de serviço ÚNICOS
 #    (prefixo llmp-). Nunca "postgres"/"redis"/"app" genéricos (colidem).
@@ -12,8 +13,11 @@
 services:
   llmp-app:
     build:
-      context: .
+      # Dockerfile fica na raiz do repo (2 níveis acima deste compose).
+      context: ../..
       dockerfile: Dockerfile
+    # Ou use a imagem publicada (sem buildar no servidor):
+    # image: ghcr.io/bsnsolution/llm-proxy-api:latest
     image: llm-proxy-api:dokploy
     restart: unless-stopped
     depends_on:
@@ -29,7 +33,7 @@ services:
       REDIS_URL: redis://llmp-redis:6379
       DATA_DIR: /data
       IMAGES_DIR: /data/images
-      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://llm.bsnsolution.com.br}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-https://llm.seudominio.com}
       # Persistido em /data se vazio; sobrescreva p/ fixar entre rebuilds.
       SESSION_SECRET: ${SESSION_SECRET:-}
       # Admin do 1º acesso: se vazios, cria pela tela de setup na 1ª visita.

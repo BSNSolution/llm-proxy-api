@@ -1,0 +1,102 @@
+# =====================================================================
+# LLM Proxy API — VPS "na mão" com TRAEFIK (HTTPS automático via Let's Encrypt).
+# Self-contained: sobe Traefik + o app + Postgres + Redis. Sem painel.
+#
+#   cp .env.example .env   # e edite DOMAIN, ACME_EMAIL, senhas
+#   docker compose up -d
+#
+# ⚠️ Em container não há CLIs locais: configure uma fonte HTTP (API key) em
+#    "Fontes & Combos" para o proxy responder. Veja deploy/README.md.
+# =====================================================================
+
+services:
+  traefik:
+    image: traefik:v3
+    restart: unless-stopped
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      # redirect global HTTP → HTTPS
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL:?defina ACME_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/acme/acme.json
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-acme:/acme
+
+  app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    # Ou: image: ghcr.io/bsnsolution/llm-proxy-api:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: 8787
+      API_HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-llmproxy}:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-llmproxy}?schema=public
+      REDIS_URL: redis://redis:6379
+      DATA_DIR: /data
+      IMAGES_DIR: /data/images
+      PUBLIC_BASE_URL: https://${DOMAIN:?defina DOMAIN}
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    volumes:
+      - app-data:/data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.llmproxy.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.llmproxy.entrypoints=websecure
+      - traefik.http.routers.llmproxy.tls.certresolver=le
+      - traefik.http.services.llmproxy.loadbalancer.server.port=8787
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "fetch(''http://127.0.0.1:8787/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-llmproxy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-llmproxy}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-llmproxy}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  traefik-acme:
+  app-data:
+  pgdata:
+  redisdata:

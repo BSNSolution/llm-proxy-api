@@ -109,11 +109,23 @@ docker pull ghcr.io/bsnsolution/llm-proxy-api:latest
 
 The image is published on push to `main` by the `docker-publish` workflow.
 
-### Deploy with Dokploy / EasyPanel
+### Deploy to a server (ready-made examples)
 
-1. Point the panel to this repository (it detects `docker-compose.yml`).
-2. Set the env vars you want (see [`.env.example`](.env.example)) — all are optional.
-3. Deploy, open the URL, create the admin account.
+Ready-to-use compose files per platform live in [`deploy/`](deploy/):
+
+| Platform | Example |
+|---|---|
+| **Dokploy** | [`deploy/dokploy/`](deploy/dokploy/) — domain/HTTPS managed by the panel |
+| **EasyPanel** | [`deploy/easypanel/`](deploy/easypanel/) |
+| **VPS + Traefik** | [`deploy/vps-traefik/`](deploy/vps-traefik/) — self-contained, auto HTTPS |
+| **VPS + Caddy** | [`deploy/vps-caddy/`](deploy/vps-caddy/) — simplest, auto HTTPS |
+
+Each folder has its own README and (for the VPS ones) a `.env.example`. See
+[`deploy/README.md`](deploy/README.md) for which to pick and the security notes.
+
+> On a server the container has no local CLIs — after first login, add an **HTTP
+> provider** API key in *Fontes & Combos* so the proxy has an LLM to route to
+> (the hybrid mode described above).
 
 ## Using your key in other tools
 

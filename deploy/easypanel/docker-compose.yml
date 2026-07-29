@@ -1,0 +1,77 @@
+# =====================================================================
+# LLM Proxy API — compose para EASYPANEL
+# O EasyPanel gerencia o domínio/HTTPS pelo painel (aba Domains do serviço),
+# então NÃO declaramos labels de reverse proxy aqui. Nomes de serviço únicos
+# (prefixo llmp-) para não colidir com outros apps.
+#
+# ⚠️ Em container não há CLIs locais: configure uma fonte HTTP (API key) em
+#    "Fontes & Combos" para o proxy responder. Veja deploy/README.md.
+# =====================================================================
+
+services:
+  llmp-app:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    # Ou use a imagem publicada (sem buildar no servidor):
+    # image: ghcr.io/bsnsolution/llm-proxy-api:latest
+    restart: unless-stopped
+    depends_on:
+      llmp-postgres:
+        condition: service_healthy
+      llmp-redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: 8787
+      API_HOST: 0.0.0.0
+      DATABASE_URL: postgresql://${POSTGRES_USER:-llmproxy}:${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}@llmp-postgres:5432/${POSTGRES_DB:-llmproxy}?schema=public
+      REDIS_URL: redis://llmp-redis:6379
+      DATA_DIR: /data
+      IMAGES_DIR: /data/images
+      PUBLIC_BASE_URL: "${PUBLIC_BASE_URL:?defina PUBLIC_BASE_URL, ex. https://llm.seudominio.com}"
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    volumes:
+      - llmp-data:/data
+    # No EasyPanel, exponha a porta 8787 no domínio pela aba Domains do serviço.
+    expose:
+      - '8787'
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "fetch(''http://127.0.0.1:8787/health'').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  llmp-postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-llmproxy}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-llmproxy}
+    volumes:
+      - llmp-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-llmproxy}']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  llmp-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - llmp-redisdata:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  llmp-data:
+  llmp-pgdata:
+  llmp-redisdata:

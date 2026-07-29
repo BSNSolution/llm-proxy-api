@@ -1,0 +1,4 @@
+# Caddy faz HTTPS automático (Let's Encrypt) para o DOMAIN e faz proxy p/ o app.
+{$DOMAIN} {
+	reverse_proxy app:8787
+}
