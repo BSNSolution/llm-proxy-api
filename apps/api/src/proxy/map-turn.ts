@@ -41,11 +41,6 @@ function openAiContent(content: unknown): { text: string; attachments: Attachmen
   return { text, attachments };
 }
 
-/** Compat: só o texto (usado onde anexos não importam). */
-function openAiContentToText(content: unknown): string {
-  return openAiContent(content).text;
-}
-
 export interface OpenAiMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: unknown;
