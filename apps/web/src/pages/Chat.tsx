@@ -14,11 +14,13 @@ import { Tooltip } from '../components/ui/tooltip.js';
 import { PageHeader, EmptyState } from '../components/ui/page-header.js';
 import { Pagination, usePagination } from '../components/ui/pagination.js';
 import { CliIcon, CLI_LABELS } from '../components/cli-card.js';
+import { useT } from '../lib/i18n/index.js';
 import { cn } from '../lib/cn.js';
 
 type Msg = { role: string; content: string; thinking?: string; imageUrl?: string };
 
 export function ChatPage() {
+  const t = useT();
   const [sessions, setSessions] = useState<ChatSessionView[]>([]);
   const [active, setActive] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -85,11 +87,13 @@ export function ChatPage() {
 
   async function send() {
     if (!active || (!input.trim() && attachments.length === 0) || streaming) return;
-    const content = input.trim() || '(anexo)';
+    const content = input.trim() || t('chat.anexo');
     const atts = attachments;
     setInput('');
     setAttachments([]);
-    const label = atts.length ? `${content}  (${atts.length} anexo${atts.length > 1 ? 's' : ''})` : content;
+    const label = atts.length
+      ? `${content}  (${atts.length} ${atts.length > 1 ? t('chat.anexos') : t('chat.anexo1')})`
+      : content;
     setMessages((m) => [...m, { role: 'user', content: label }, { role: 'assistant', content: '' }]);
     setStreaming(true);
     try {
@@ -120,7 +124,7 @@ export function ChatPage() {
           onError: (message) =>
             setMessages((m) => {
               const copy = [...m];
-              copy[copy.length - 1] = { role: 'assistant', content: `[erro] ${message}` };
+              copy[copy.length - 1] = { role: 'assistant', content: `${t('chat.erro')} ${message}` };
               return copy;
             }),
         },
@@ -133,7 +137,7 @@ export function ChatPage() {
 
   return (
     <main className="flex h-[calc(100dvh-8rem)] flex-col gap-5 lg:h-[calc(100dvh-4rem)]">
-      <PageHeader eyebrow="Interativo" title="Chat" />
+      <PageHeader eyebrow={t('chat.eyebrow')} title={t('chat.titulo')} />
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
         {/* Lista de sessões — some no mobile quando há conversa aberta */}
@@ -155,7 +159,7 @@ export function ChatPage() {
                 icon: <CliIcon kind={k} size={14} />,
               }))}
             />
-            <Button size="icon-sm" onClick={newSession} aria-label="Nova conversa">
+            <Button size="icon-sm" onClick={newSession} aria-label={t('chat.novaConversa')}>
               <Plus size={16} />
             </Button>
           </div>
@@ -175,18 +179,18 @@ export function ChatPage() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm">{s.title}</span>
                   <span className="block truncate text-2xs text-fg-subtle">
-                    {CLI_LABELS[s.cliKind] ?? s.cliKind} · {s._count?.messages ?? 0} msgs
+                    {CLI_LABELS[s.cliKind] ?? s.cliKind} · {s._count?.messages ?? 0} {t('chat.msgs')}
                   </span>
                 </span>
               </button>
             ))}
             {sessions.length === 0 && (
-              <p className="px-2.5 py-2 text-sm text-fg-subtle">Crie uma conversa.</p>
+              <p className="px-2.5 py-2 text-sm text-fg-subtle">{t('chat.crieConversa')}</p>
             )}
           </div>
           {sessionsPg.totalPages > 1 && (
             <div className="border-t border-border pt-1">
-              <Pagination {...sessionsPg} label="conversas" />
+              <Pagination {...sessionsPg} label={t('chat.conversas')} />
             </div>
           )}
         </div>
@@ -201,7 +205,7 @@ export function ChatPage() {
           {!active ? (
             <div className="m-auto flex flex-col items-center gap-2 text-fg-subtle">
               <MessagesSquare size={28} />
-              <p className="text-sm">Selecione ou crie uma conversa.</p>
+              <p className="text-sm">{t('chat.selecioneOuCrie')}</p>
             </div>
           ) : (
             <>
@@ -226,8 +230,10 @@ export function ChatPage() {
               <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-5">
                 {messages.length === 0 && (
                   <div className="mx-auto max-w-sm pt-10">
-                    <EmptyState icon={<Sparkles size={26} />} title="Comece a conversa">
-                      Envie uma mensagem para {CLI_LABELS[activeSession?.cliKind ?? ''] ?? 'a LLM'}.
+                    <EmptyState icon={<Sparkles size={26} />} title={t('chat.comeceConversa')}>
+                      {t('chat.envieMensagem', {
+                        cli: CLI_LABELS[activeSession?.cliKind ?? ''] ?? t('chat.aLLM'),
+                      })}
                     </EmptyState>
                   </div>
                 )}
@@ -266,20 +272,20 @@ export function ChatPage() {
                 )}
                 <div className="flex items-end gap-2 rounded-lg border border-border bg-surface-2 p-2 transition-colors focus-within:border-primary/50">
                   <div className="flex items-center gap-1 pl-1">
-                    <Tooltip content="Raciocínio estendido (mais lento).">
+                    <Tooltip content={t('chat.thinkingTip')}>
                       <button
                         onClick={() => setThinking((v) => !v)}
                         className={cn(
                           'grid h-8 w-8 place-items-center rounded-md transition-colors',
                           thinking ? 'bg-primary/15 text-primary' : 'text-fg-subtle hover:bg-surface-3',
                         )}
-                        aria-label="Thinking"
+                        aria-label={t('chat.thinking')}
                       >
                         <Brain size={16} />
                       </button>
                     </Tooltip>
                     {canGenImage && (
-                      <Tooltip content="Modo imagem: a próxima mensagem gera uma imagem.">
+                      <Tooltip content={t('chat.modoImagemTip')}>
                         <button
                           onClick={() => setImageMode((v) => !v)}
                           className={cn(
@@ -288,7 +294,7 @@ export function ChatPage() {
                               ? 'bg-primary/15 text-primary'
                               : 'text-fg-subtle hover:bg-surface-3',
                           )}
-                          aria-label="Modo imagem"
+                          aria-label={t('chat.modoImagem')}
                         >
                           <ImageIcon size={16} />
                         </button>
@@ -303,12 +309,12 @@ export function ChatPage() {
                           className="hidden"
                           onChange={(e) => onPickFiles(e.target.files)}
                         />
-                        <Tooltip content="Anexar imagem, arquivo ou áudio.">
+                        <Tooltip content={t('chat.anexarTip')}>
                           <button
                             onClick={() => fileRef.current?.click()}
                             disabled={streaming}
                             className="grid h-8 w-8 place-items-center rounded-md text-fg-subtle transition-colors hover:bg-surface-3"
-                            aria-label="Anexar"
+                            aria-label={t('chat.anexar')}
                           >
                             <Paperclip size={16} />
                           </button>
@@ -328,13 +334,15 @@ export function ChatPage() {
                     rows={1}
                     placeholder={
                       imageMode
-                        ? 'Descreva a imagem a gerar…'
-                        : `Mensagem para ${CLI_LABELS[activeSession?.cliKind ?? ''] ?? 'a LLM'}…`
+                        ? t('chat.placeholderImagem')
+                        : t('chat.placeholderMensagem', {
+                            cli: CLI_LABELS[activeSession?.cliKind ?? ''] ?? t('chat.aLLM'),
+                          })
                     }
                     disabled={streaming}
                     className="max-h-32 min-h-[36px] flex-1 resize-none bg-transparent py-2 text-sm text-fg outline-none placeholder:text-fg-subtle"
                   />
-                  <Button size="icon" onClick={send} loading={streaming} aria-label="Enviar">
+                  <Button size="icon" onClick={send} loading={streaming} aria-label={t('chat.enviar')}>
                     {!streaming && <Send size={15} />}
                   </Button>
                 </div>
@@ -358,6 +366,7 @@ function MessageBubble({
   streaming: boolean;
   imageMode: boolean;
 }) {
+  const t = useT();
   const isUser = msg.role === 'user';
   return (
     <div className={cn('flex gap-3', isUser ? 'flex-row-reverse' : 'flex-row')}>
@@ -377,7 +386,7 @@ function MessageBubble({
         {msg.thinking && (
           <details className="w-full rounded-lg border border-border bg-bg/50 px-3 py-2 text-xs text-fg-muted">
             <summary className="flex cursor-pointer select-none items-center gap-1.5">
-              <Brain size={13} /> Raciocínio
+              <Brain size={13} /> {t('chat.raciocinio')}
             </summary>
             <div className="mt-2 whitespace-pre-wrap">{msg.thinking}</div>
           </details>
@@ -389,7 +398,7 @@ function MessageBubble({
             rel="noreferrer"
             className="block max-w-[320px] overflow-hidden rounded-lg border border-border"
           >
-            <img src={msg.imageUrl} alt="imagem gerada" className="w-full" />
+            <img src={msg.imageUrl} alt={t('chat.imagemGerada')} className="w-full" />
           </a>
         ) : (
           <div
@@ -400,7 +409,7 @@ function MessageBubble({
                 : 'border border-border bg-surface-3 text-fg',
             )}
           >
-            {msg.content || (streaming ? (imageMode ? 'Gerando imagem…' : '…') : '')}
+            {msg.content || (streaming ? (imageMode ? t('chat.gerandoImagem') : '…') : '')}
           </div>
         )}
       </div>

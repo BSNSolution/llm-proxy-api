@@ -4,12 +4,14 @@ import { api } from '../lib/api.js';
 import { Button } from '../components/ui/button.js';
 import { Field, Input } from '../components/ui/input.js';
 import { Logo } from '../components/logo.js';
+import { useT } from '../lib/i18n/index.js';
 
 /**
  * Primeiro acesso (first-run): cria a conta de administrador.
  * Aparece uma única vez, quando ainda não há nenhum usuário no banco.
  */
 export function SetupAdminPage({ onDone }: { onDone: () => void }) {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -20,14 +22,14 @@ export function SetupAdminPage({ onDone }: { onDone: () => void }) {
   async function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (password.length < 6) return setError('A senha precisa de ao menos 6 caracteres.');
-    if (password !== confirm) return setError('As senhas não coincidem.');
+    if (password.length < 6) return setError(t('setupAdmin.passwordTooShort'));
+    if (password !== confirm) return setError(t('setupAdmin.passwordMismatch'));
     setLoading(true);
     try {
       await api.setupAdmin({ email, name: name || undefined, password });
       onDone();
     } catch (err) {
-      setError(String((err as Error).message ?? 'Não foi possível criar a conta.'));
+      setError(String((err as Error).message ?? t('setupAdmin.createError')));
     } finally {
       setLoading(false);
     }
@@ -41,49 +43,49 @@ export function SetupAdminPage({ onDone }: { onDone: () => void }) {
         </div>
 
         <div className="rounded-xl border border-border bg-surface-2/60 p-6 shadow-lg backdrop-blur-sm sm:p-7">
-          <p className="text-2xs font-medium uppercase tracking-[0.16em] text-primary">Primeiro acesso</p>
-          <h1 className="mt-1 text-lg font-semibold tracking-tight">Crie sua conta de administrador</h1>
+          <p className="text-2xs font-medium uppercase tracking-[0.16em] text-primary">{t('setupAdmin.eyebrow')}</p>
+          <h1 className="mt-1 text-lg font-semibold tracking-tight">{t('setupAdmin.heading')}</h1>
           <p className="mt-1 text-sm text-fg-muted">
-            Esta é a conta que gerencia o app. Você poderá criar outros usuários depois.
+            {t('setupAdmin.description')}
           </p>
 
           <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
-            <Field label="E-mail">
+            <Field label={t('common.email')}>
               <Input
                 icon={<Mail size={15} />}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 autoComplete="username"
-                placeholder="voce@empresa.com"
+                placeholder={t('setupAdmin.emailPlaceholder')}
               />
             </Field>
-            <Field label="Nome (opcional)">
+            <Field label={t('setupAdmin.nameOptional')}>
               <Input
                 icon={<User size={15} />}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Seu nome"
+                placeholder={t('setupAdmin.namePlaceholder')}
               />
             </Field>
-            <Field label="Senha" hint="Mínimo 6 caracteres.">
+            <Field label={t('common.password')} hint={t('setupAdmin.passwordHint')}>
               <Input
                 icon={<Lock size={15} />}
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
-                placeholder="crie uma senha"
+                placeholder={t('setupAdmin.passwordPlaceholder')}
               />
             </Field>
-            <Field label="Confirmar senha">
+            <Field label={t('setupAdmin.confirmPassword')}>
               <Input
                 icon={<Lock size={15} />}
                 type="password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 autoComplete="new-password"
-                placeholder="repita a senha"
+                placeholder={t('setupAdmin.confirmPlaceholder')}
               />
             </Field>
             {error && (
@@ -93,13 +95,13 @@ export function SetupAdminPage({ onDone }: { onDone: () => void }) {
             )}
             <Button type="submit" size="lg" loading={loading} className="mt-1 w-full">
               {!loading && <ArrowRight size={16} />}
-              Criar conta e entrar
+              {t('setupAdmin.submit')}
             </Button>
           </form>
         </div>
 
         <p className="mt-6 text-center text-xs text-fg-subtle">
-          Roda na sua máquina · self-hosted · offline-first
+          {t('setupAdmin.footer')}
         </p>
       </div>
     </div>

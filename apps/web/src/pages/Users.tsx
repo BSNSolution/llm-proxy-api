@@ -11,8 +11,10 @@ import { Modal } from '../components/ui/modal.js';
 import { PageHeader, EmptyState } from '../components/ui/page-header.js';
 import { Pagination, usePagination } from '../components/ui/pagination.js';
 import { HintTip, Tooltip } from '../components/ui/tooltip.js';
+import { useT } from '../lib/i18n/index.js';
 
 export function UsersPage() {
+  const t = useT();
   const [users, setUsers] = useState<UserView[]>([]);
   const [sessions, setSessions] = useState<SessionView[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +42,7 @@ export function UsersPage() {
   }, []);
 
   async function removeUser(u: UserView) {
-    if (!confirm(`Excluir o usuário ${u.email}? Isso apaga as keys e o chat dele.`)) return;
+    if (!confirm(t('users.confirmDelete', { email: u.email }))) return;
     try {
       await api.deleteUser(u.id);
       await load();
@@ -61,12 +63,12 @@ export function UsersPage() {
   return (
     <main className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Administração"
-        title="Usuários & Sessões"
-        subtitle="Crie contas com papéis, controle o acesso e gerencie as sessões ativas."
+        eyebrow={t('users.eyebrow')}
+        title={t('users.title')}
+        subtitle={t('users.subtitle')}
         action={
           <Button onClick={() => setCreating(true)}>
-            <UserPlus size={15} /> Novo usuário
+            <UserPlus size={15} /> {t('users.new')}
           </Button>
         }
       />
@@ -78,23 +80,23 @@ export function UsersPage() {
       {/* USUÁRIOS */}
       <Card className="p-5">
         <h3 className="mb-4 flex items-center gap-1.5 text-sm font-semibold text-fg-muted">
-          Usuários · <span className="font-mono text-fg">{users.length}</span>
-          <HintTip content="Cada usuário tem suas próprias API keys e chats, isolados. Admin gerencia tudo; viewer só usa o que é dele." />
+          {t('users.usersTitle')} · <span className="font-mono text-fg">{users.length}</span>
+          <HintTip content={t('users.usersHint')} />
         </h3>
 
         {users.length === 0 ? (
-          <EmptyState icon={<UserPlus size={26} />} title="Nenhum usuário">
-            Crie o primeiro usuário para dar acesso a outra pessoa.
+          <EmptyState icon={<UserPlus size={26} />} title={t('users.emptyUsers')}>
+            {t('users.emptyUsersBody')}
           </EmptyState>
         ) : (
           <>
             {/* desktop */}
             <div className="hidden overflow-hidden rounded-lg border border-border md:block">
               <div className="grid grid-cols-[1.6fr_0.7fr_0.6fr_0.6fr_120px] border-b border-border bg-surface-3/50 px-4 py-2.5 text-2xs font-medium uppercase tracking-wider text-fg-subtle">
-                <span>Usuário</span>
-                <span>Papel</span>
-                <span>Keys</span>
-                <span>Estado</span>
+                <span>{t('users.col.user')}</span>
+                <span>{t('common.role')}</span>
+                <span>{t('users.col.keys')}</span>
+                <span>{t('common.status')}</span>
                 <span />
               </div>
               {usersPg.pageItems.map((u) => (
@@ -107,27 +109,29 @@ export function UsersPage() {
                     {u.name && <p className="truncate text-xs text-fg-subtle">{u.email}</p>}
                   </div>
                   <span>
-                    <Badge tone={u.role === 'admin' ? 'primary' : 'neutral'}>{u.role}</Badge>
+                    <Badge tone={u.role === 'admin' ? 'primary' : 'neutral'}>
+                      {u.role === 'admin' ? t('users.role.admin') : t('users.role.viewer')}
+                    </Badge>
                   </span>
                   <span className="font-mono text-xs text-fg-muted">{u.keysCount}</span>
                   <span>
                     {u.disabled ? (
                       <Badge tone="err" dot>
-                        desativado
+                        {t('users.state.disabled')}
                       </Badge>
                     ) : (
                       <Badge tone="ok" dot>
-                        ativo
+                        {t('users.state.active')}
                       </Badge>
                     )}
                   </span>
                   <span className="flex justify-end gap-0.5">
-                    <Tooltip content="Editar papel, nome, senha e estado.">
+                    <Tooltip content={t('users.tip.edit')}>
                       <Button variant="ghost" size="icon-sm" onClick={() => setEditing(u)}>
                         <Pencil size={15} />
                       </Button>
                     </Tooltip>
-                    <Tooltip content="Excluir usuário (e tudo dele).">
+                    <Tooltip content={t('users.tip.delete')}>
                       <Button
                         variant="ghost"
                         size="icon-sm"
@@ -151,15 +155,17 @@ export function UsersPage() {
                       <p className="truncate font-medium">{u.name || u.email}</p>
                       <p className="truncate text-xs text-fg-subtle">{u.email}</p>
                     </div>
-                    <Badge tone={u.role === 'admin' ? 'primary' : 'neutral'}>{u.role}</Badge>
+                    <Badge tone={u.role === 'admin' ? 'primary' : 'neutral'}>
+                      {u.role === 'admin' ? t('users.role.admin') : t('users.role.viewer')}
+                    </Badge>
                   </div>
                   <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs text-fg-muted">
                     <span>
-                      {u.keysCount} keys ·{' '}
+                      {t('users.keysCount', { n: u.keysCount })} ·{' '}
                       {u.disabled ? (
-                        <span className="text-err">desativado</span>
+                        <span className="text-err">{t('users.state.disabled')}</span>
                       ) : (
-                        <span className="text-ok">ativo</span>
+                        <span className="text-ok">{t('users.state.active')}</span>
                       )}
                     </span>
                     <span className="flex gap-0.5">
@@ -179,7 +185,7 @@ export function UsersPage() {
                 </div>
               ))}
             </div>
-            <Pagination {...usersPg} label="usuários" />
+            <Pagination {...usersPg} label={t('users.paginationUsers')} />
           </>
         )}
       </Card>
@@ -188,8 +194,8 @@ export function UsersPage() {
       <Card className="p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h3 className="flex items-center gap-1.5 text-sm font-semibold text-fg-muted">
-            Sessões ativas · <span className="font-mono text-fg">{sessions.length}</span>
-            <HintTip content="Cada login cria uma sessão. Revogue para forçar o logout de um dispositivo." />
+            {t('users.sessionsTitle')} · <span className="font-mono text-fg">{sessions.length}</span>
+            <HintTip content={t('users.sessionsHint')} />
           </h3>
           <Button
             variant="secondary"
@@ -199,12 +205,12 @@ export function UsersPage() {
               await load();
             }}
           >
-            Encerrar minhas outras sessões
+            {t('users.revokeOthers')}
           </Button>
         </div>
 
         {sessions.length === 0 ? (
-          <EmptyState icon={<Monitor size={26} />}>Nenhuma sessão ativa.</EmptyState>
+          <EmptyState icon={<Monitor size={26} />}>{t('users.noSessions')}</EmptyState>
         ) : (
           <>
             <div className="flex flex-col gap-2">
@@ -219,12 +225,12 @@ export function UsersPage() {
                       {s.userName || s.userEmail}
                       {s.current && (
                         <Badge tone="primary" dot>
-                          esta sessão
+                          {t('users.thisSession')}
                         </Badge>
                       )}
                     </p>
                     <p className="truncate text-2xs text-fg-subtle">
-                      {shortUA(s.userAgent)} · {s.ip ?? 'ip —'} · visto{' '}
+                      {shortUA(s.userAgent, t)} · {s.ip ?? t('users.ipUnknown')} · {t('users.seen')}{' '}
                       {new Date(s.lastSeenAt).toLocaleString('pt-BR', {
                         day: '2-digit',
                         month: '2-digit',
@@ -234,7 +240,7 @@ export function UsersPage() {
                     </p>
                   </div>
                   {!s.current && (
-                    <Tooltip content="Revogar (desloga este dispositivo).">
+                    <Tooltip content={t('users.tip.revoke')}>
                       <Button
                         variant="ghost"
                         size="icon-sm"
@@ -248,7 +254,7 @@ export function UsersPage() {
                 </div>
               ))}
             </div>
-            <Pagination {...sessionsPg} label="sessões" />
+            <Pagination {...sessionsPg} label={t('users.paginationSessions')} />
           </>
         )}
       </Card>
@@ -286,6 +292,7 @@ function UserModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const editingMode = !!user;
   const [email, setEmail] = useState(user?.email ?? '');
   const [name, setName] = useState(user?.name ?? '');
@@ -318,12 +325,12 @@ function UserModal({
   }
 
   return (
-    <Modal title={editingMode ? 'Editar usuário' : 'Novo usuário'} onClose={onClose}>
+    <Modal title={editingMode ? t('users.modal.editTitle') : t('users.modal.newTitle')} onClose={onClose}>
       <div className="flex flex-col gap-4">
         {err && (
           <div className="rounded-md border border-err/25 bg-err/10 px-3 py-2 text-sm text-err">{err}</div>
         )}
-        <Field label="E-mail">
+        <Field label={t('users.modal.email')}>
           <Input
             type="email"
             value={email}
@@ -332,25 +339,25 @@ function UserModal({
             placeholder="pessoa@empresa.com"
           />
         </Field>
-        <Field label="Nome (opcional)">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome de exibição" />
+        <Field label={t('users.modal.name')}>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('users.modal.namePlaceholder')} />
         </Field>
         <Field
-          label={editingMode ? 'Nova senha (deixe em branco para manter)' : 'Senha'}
-          hint="Mínimo 6 caracteres."
+          label={editingMode ? t('users.modal.newPassword') : t('common.password')}
+          hint={t('users.modal.passwordHint')}
         >
           <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={editingMode ? '••••••' : 'defina uma senha'}
+            placeholder={editingMode ? '••••••' : t('users.modal.passwordPlaceholder')}
           />
         </Field>
         <Field
           label={
             <span className="inline-flex items-center gap-1">
-              Papel
-              <HintTip content="Admin gerencia usuários, sessões e tudo. Viewer só usa as próprias keys e o próprio chat." />
+              {t('common.role')}
+              <HintTip content={t('users.modal.roleHint')} />
             </span>
           }
         >
@@ -358,23 +365,23 @@ function UserModal({
             value={role}
             onChange={(v) => setRole(v as 'admin' | 'viewer')}
             options={[
-              { value: 'viewer', label: 'Viewer (uso próprio)' },
-              { value: 'admin', label: 'Admin (gerencia tudo)' },
+              { value: 'viewer', label: t('users.modal.roleViewer') },
+              { value: 'admin', label: t('users.modal.roleAdmin') },
             ]}
           />
         </Field>
         {editingMode && (
           <div className="flex items-center justify-between rounded-lg border border-border bg-surface-3/40 px-3 py-2.5">
             <span className="flex items-center gap-1.5 text-sm">
-              <KeyRound size={14} className="text-fg-subtle" /> Conta ativa
-              <HintTip content="Ao desativar, o usuário não consegue mais logar e todas as sessões dele são encerradas." />
+              <KeyRound size={14} className="text-fg-subtle" /> {t('users.modal.accountActive')}
+              <HintTip content={t('users.modal.accountActiveHint')} />
             </span>
             <Switch checked={!disabled} onChange={() => setDisabled((d) => !d)} />
           </div>
         )}
         <div className="mt-1 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={save}
@@ -382,7 +389,7 @@ function UserModal({
             disabled={!email.trim() || (!editingMode && password.length < 6)}
           >
             {!saving && <Plus size={15} />}
-            {editingMode ? 'Salvar' : 'Criar usuário'}
+            {editingMode ? t('common.save') : t('users.modal.submitCreate')}
           </Button>
         </div>
       </div>
@@ -391,11 +398,11 @@ function UserModal({
 }
 
 /** Resume o user-agent para algo curto e legível. */
-function shortUA(ua: string | null): string {
-  if (!ua) return 'dispositivo —';
-  if (/iPhone|Android|Mobile/i.test(ua)) return 'Celular';
+function shortUA(ua: string | null, t: (key: string) => string): string {
+  if (!ua) return t('users.ua.unknown');
+  if (/iPhone|Android|Mobile/i.test(ua)) return t('users.ua.phone');
   if (/Macintosh|Mac OS/i.test(ua)) return 'Mac';
   if (/Windows/i.test(ua)) return 'Windows';
   if (/Linux/i.test(ua)) return 'Linux';
-  return 'Navegador';
+  return t('users.ua.browser');
 }

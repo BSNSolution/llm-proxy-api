@@ -10,11 +10,13 @@ import { Pagination, usePagination } from '../components/ui/pagination.js';
 import { HintTip } from '../components/ui/tooltip.js';
 import { CliCard, CliIcon, CLI_LABELS } from '../components/cli-card.js';
 import { InstallLoginWizard } from '../components/install-login-wizard.js';
+import { useT } from '../lib/i18n/index.js';
 import { cn } from '../lib/cn.js';
 
 type Step = 1 | 2 | 3;
 
 export function SetupPage() {
+  const t = useT();
   const [step, setStep] = useState<Step>(1);
   const [clis, setClis] = useState<DetectedCli[]>([]);
   const [loading, setLoading] = useState(false);
@@ -94,7 +96,7 @@ export function SetupPage() {
     try {
       const d = clis.find((c) => c.kind === kind);
       const res = await api.createKey({
-        name: `${CLI_LABELS[kind] ?? kind} key`,
+        name: t('setup.keyName', { cli: CLI_LABELS[kind] ?? kind }),
         cliKind: kind,
         defaultModel: d?.defaultModel ?? undefined,
         allowedModels: d?.models ?? [],
@@ -113,9 +115,9 @@ export function SetupPage() {
   return (
     <main className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Configuração inicial"
-        title="Setup guiado"
-        subtitle="Detecte suas CLIs, escolha quais expor no proxy e gere sua primeira API key."
+        eyebrow={t('setup.eyebrow')}
+        title={t('setup.titulo')}
+        subtitle={t('setup.subtitulo')}
       />
 
       <Stepper step={step} />
@@ -131,13 +133,13 @@ export function SetupPage() {
         <Card className="p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p className="flex items-center gap-1.5 text-sm text-fg-muted">
-              <span className="font-mono font-medium text-fg">{present.length}</span> de{' '}
-              <span className="font-mono">{clis.length || 6}</span> CLIs instaladas
-              <HintTip content="Procuramos cada CLI no PATH do sistema, sem executá-la." />
+              <span className="font-mono font-medium text-fg">{present.length}</span> {t('common.of')}{' '}
+              <span className="font-mono">{clis.length || 6}</span> {t('setup.clisInstaladas')}
+              <HintTip content={t('setup.detectTip')} />
             </p>
             <Button variant="secondary" size="sm" onClick={detect} loading={loading}>
               {!loading && <RefreshCw size={15} />}
-              Detectar
+              {t('setup.detectar')}
             </Button>
           </div>
 
@@ -154,15 +156,15 @@ export function SetupPage() {
                   />
                 ))}
               </div>
-              {presentPg.totalPages > 1 && <Pagination {...presentPg} label="CLIs" />}
+              {presentPg.totalPages > 1 && <Pagination {...presentPg} label={t('setup.clis')} />}
             </div>
           )}
 
           {absent.length > 0 && (
             <>
               <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-fg-subtle">
-                Não instaladas
-                <HintTip content="O app pode instalar e logar cada uma para você — mostra o comando e pede confirmação." />
+                {t('setup.naoInstaladas')}
+                <HintTip content={t('setup.naoInstaladasTip')} />
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {absentPg.pageItems.map((c) => (
@@ -175,25 +177,25 @@ export function SetupPage() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm">{CLI_LABELS[c.kind] ?? c.kind}</p>
-                      <p className="text-2xs text-fg-subtle">não instalada</p>
+                      <p className="text-2xs text-fg-subtle">{t('setup.naoInstalada')}</p>
                     </div>
                     <Button
                       variant="secondary"
                       size="sm"
                       onClick={() => setWizardCli({ kind: c.kind, installed: false })}
                     >
-                      <Download size={14} /> Instalar
+                      <Download size={14} /> {t('setup.instalar')}
                     </Button>
                   </div>
                 ))}
               </div>
-              {absentPg.totalPages > 1 && <Pagination {...absentPg} label="CLIs" />}
+              {absentPg.totalPages > 1 && <Pagination {...absentPg} label={t('setup.clis')} />}
             </>
           )}
 
           <div className="mt-5 flex justify-end">
             <Button onClick={() => setStep(2)} disabled={present.length === 0}>
-              Próximo
+              {t('setup.proximo')}
             </Button>
           </div>
         </Card>
@@ -203,8 +205,8 @@ export function SetupPage() {
       {step === 2 && (
         <Card className="p-5">
           <p className="mb-4 flex items-center gap-1.5 text-sm text-fg-muted">
-            Clique nos cards para ativar ou desativar cada CLI no Proxy API.
-            <HintTip content="CLIs ativas podem receber API keys e responder pelo proxy. Muda depois em Configurações." />
+            {t('setup.cliquePara')}
+            <HintTip content={t('setup.cliqueParaTip')} />
           </p>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -220,15 +222,15 @@ export function SetupPage() {
 
           <div className="mt-5 flex items-center justify-between">
             <Button variant="outline" onClick={() => setStep(1)}>
-              Voltar
+              {t('setup.voltar')}
             </Button>
             <div className="flex items-center gap-3">
               <span className="text-xs text-fg-muted">
-                <span className="font-mono text-fg">{selected.size}</span> selecionada
-                {selected.size === 1 ? '' : 's'}
+                <span className="font-mono text-fg">{selected.size}</span>{' '}
+                {selected.size === 1 ? t('setup.selecionada') : t('setup.selecionadas')}
               </span>
               <Button onClick={saveConfigs} disabled={selected.size === 0}>
-                Salvar e continuar
+                {t('setup.salvarContinuar')}
               </Button>
             </div>
           </div>
@@ -239,12 +241,12 @@ export function SetupPage() {
       {step === 3 && (
         <Card className="p-5">
           <h3 className="flex items-center gap-1.5 text-[15px] font-semibold">
-            Pronto! Gere sua primeira API key
-            <HintTip content="A API key autentica quem chama seu Proxy API. Mostrada uma única vez." />
+            {t('setup.prontoGere')}
+            <HintTip content={t('setup.prontoGereTip')} />
           </h3>
           {!created ? (
             <>
-              <p className="mb-4 mt-1 text-sm text-fg-muted">Escolha uma CLI para gerar a key:</p>
+              <p className="mb-4 mt-1 text-sm text-fg-muted">{t('setup.escolhaCli')}</p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {[...selected].map((kind) => {
                   const c = clis.find((x) => x.kind === kind);
@@ -271,24 +273,25 @@ export function SetupPage() {
           ) : (
             <div className="mt-4 flex flex-col gap-4">
               <div className="flex items-center gap-2 rounded-md border border-ok/25 bg-ok/10 px-3 py-2 text-sm text-ok">
-                <Check size={15} /> Key criada — copie agora (é mostrada uma única vez)
+                <Check size={15} /> {t('setup.keyCriada')}
               </div>
               <p className="text-sm text-fg-muted">
-                Pronto! Agora, no programa/app onde você usa uma IA (ou no seu código), configure
-                dois valores: a <span className="font-medium text-fg">Base URL</span> (o endereço do
-                seu proxy) e a <span className="font-medium text-fg">API key</span> abaixo (a senha de
-                acesso). O exemplo em <span className="font-mono text-xs">curl</span> mostra uma chamada
-                de teste pronta para colar no terminal.
+                {t('setup.prontoAgora1')}{' '}
+                <span className="font-medium text-fg">{t('setup.baseUrl')}</span>{' '}
+                {t('setup.prontoAgora2')}{' '}
+                <span className="font-medium text-fg">{t('setup.apiKey')}</span>{' '}
+                {t('setup.prontoAgora3')}{' '}
+                <span className="font-mono text-xs">curl</span> {t('setup.prontoAgora4')}
               </p>
-              <CopyBlock label="API key (sua senha de acesso — guarde em local seguro)" value={created.rawKey} />
+              <CopyBlock label={t('setup.apiKeyLabel')} value={created.rawKey} />
               <CopyBlock
-                label="Base URL (cole no campo de endereço da API do seu app)"
+                label={t('setup.baseUrlLabel')}
                 value={created.preview.openaiBaseUrl}
               />
               <div>
                 <p className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-fg-muted">
-                  Exemplo de teste (curl)
-                  <HintTip content="Cole esta linha no Terminal para testar se o proxy responde. Se voltar uma resposta da IA, está tudo funcionando." />
+                  {t('setup.exemploTeste')}
+                  <HintTip content={t('setup.exemploTesteTip')} />
                 </p>
                 <pre className="overflow-x-auto rounded-lg border border-border bg-bg px-3 py-2.5 font-mono text-xs text-fg-muted">
                   {created.preview.curlExample}
@@ -323,6 +326,7 @@ function InstalledCliCard({
   enabled: boolean;
   onLogin: () => void;
 }) {
+  const t = useT();
   const caps = cli.capabilities;
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border bg-surface-2 p-4">
@@ -339,23 +343,23 @@ function InstalledCliCard({
       {/* estado — sempre claro pro usuário */}
       <div className="flex flex-wrap gap-1.5">
         <Badge tone="ok" dot>
-          instalada
+          {t('setup.instalada')}
         </Badge>
         {loggedIn ? (
           <Badge tone="ok" dot>
-            logada
+            {t('setup.logada')}
           </Badge>
         ) : (
           <span className="inline-flex items-center gap-1">
             <Badge tone="warn" dot>
-              login não verificado
+              {t('setup.loginNaoVerificado')}
             </Badge>
-            <HintTip content="Não confirmamos o login desta CLI. Algumas guardam a credencial no chaveiro do sistema (não verificável). Se já usa a CLI normalmente, pode ignorar; senão, clique em Fazer login." />
+            <HintTip content={t('setup.loginNaoVerificadoTip')} />
           </span>
         )}
         {enabled && (
           <Badge tone="primary" dot>
-            ativa no proxy
+            {t('setup.ativaNoProxy')}
           </Badge>
         )}
       </div>
@@ -364,14 +368,14 @@ function InstalledCliCard({
       <div className="flex flex-wrap gap-1.5">
         {caps.stream && <MiniTag>stream</MiniTag>}
         {caps.thinking && <MiniTag>thinking</MiniTag>}
-        {caps.imagesOut && <MiniTag className="text-primary">gera imagem</MiniTag>}
-        {caps.realTokens && <MiniTag className="text-ok">tokens reais</MiniTag>}
+        {caps.imagesOut && <MiniTag className="text-primary">{t('setup.geraImagem')}</MiniTag>}
+        {caps.realTokens && <MiniTag className="text-ok">{t('setup.tokensReais')}</MiniTag>}
       </div>
 
       {/* ação de login só quando NÃO logada (login não é destrutivo, mas evita ruído) */}
       {!loggedIn && (
         <Button variant="secondary" size="sm" onClick={onLogin} className="mt-1 w-full">
-          <LogIn size={14} /> Fazer login
+          <LogIn size={14} /> {t('setup.fazerLogin')}
         </Button>
       )}
     </div>
@@ -392,6 +396,7 @@ function MiniTag({ children, className }: { children: React.ReactNode; className
 }
 
 function CopyBlock({ label, value }: { label: string; value: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   return (
     <div>
@@ -405,7 +410,7 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           }}
-          aria-label="Copiar"
+          aria-label={t('common.copy')}
         >
           {copied ? <Check size={15} className="text-ok" /> : <Copy size={15} />}
         </button>
@@ -415,10 +420,11 @@ function CopyBlock({ label, value }: { label: string; value: string }) {
 }
 
 function Stepper({ step }: { step: Step }) {
+  const t = useT();
   const items = [
-    { n: 1 as Step, label: 'Detectar', icon: Cpu },
-    { n: 2 as Step, label: 'Selecionar', icon: ListChecks },
-    { n: 3 as Step, label: 'Gerar key', icon: KeyRound },
+    { n: 1 as Step, label: t('setup.stepDetectar'), icon: Cpu },
+    { n: 2 as Step, label: t('setup.stepSelecionar'), icon: ListChecks },
+    { n: 3 as Step, label: t('setup.stepGerarKey'), icon: KeyRound },
   ];
   return (
     <div className="flex items-center gap-2 overflow-x-auto">

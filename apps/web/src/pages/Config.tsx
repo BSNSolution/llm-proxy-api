@@ -10,9 +10,11 @@ import { PageHeader, EmptyState } from '../components/ui/page-header.js';
 import { Pagination, usePagination } from '../components/ui/pagination.js';
 import { HintTip } from '../components/ui/tooltip.js';
 import { CliIcon, CLI_LABELS } from '../components/cli-card.js';
+import { useT } from '../lib/i18n/index.js';
 import { cn } from '../lib/cn.js';
 
 export function ConfigPage() {
+  const t = useT();
   const [clis, setClis] = useState<DetectedCli[]>([]);
   const [configs, setConfigs] = useState<Record<string, CliConfigView>>({});
   const [saved, setSaved] = useState<string | null>(null);
@@ -62,27 +64,27 @@ export function ConfigPage() {
   return (
     <main className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Ajustes"
-        title="Configurações"
-        subtitle="Ative as CLIs no Proxy API e defina o modelo padrão de cada uma."
+        eyebrow={t('config.eyebrow')}
+        title={t('config.titulo')}
+        subtitle={t('config.subtitulo')}
         action={
           <Button variant="secondary" size="sm" onClick={redetect} loading={detecting}>
             {!detecting && <RefreshCw size={15} />}
-            Detectar
+            {t('config.detectar')}
           </Button>
         }
       />
 
       {clis.length === 0 ? (
         <Card className="p-5">
-          <EmptyState title="Nenhuma CLI detectada">Rode a detecção na tela Setup primeiro.</EmptyState>
+          <EmptyState title={t('config.vazio.titulo')}>{t('config.vazio.desc')}</EmptyState>
         </Card>
       ) : (
         <>
           <section>
             <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-fg-muted">
-              Instaladas · <span className="font-mono text-fg">{present.length}</span>
-              <HintTip content="Ligue o switch para expor a CLI no proxy. O modelo padrão é usado quando o client não especifica um." />
+              {t('config.instaladas')} · <span className="font-mono text-fg">{present.length}</span>
+              <HintTip content={t('config.instaladas.hint')} />
             </h3>
             <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
               {presentPg.pageItems.map((c) => (
@@ -103,8 +105,8 @@ export function ConfigPage() {
           {absent.length > 0 && (
             <section>
               <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-fg-muted">
-                Não instaladas · <span className="font-mono text-fg">{absent.length}</span>
-                <HintTip content="Instale a CLI na máquina e clique em Detectar." />
+                {t('config.naoInstaladas')} · <span className="font-mono text-fg">{absent.length}</span>
+                <HintTip content={t('config.naoInstaladas.hint')} />
               </h3>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {absentPg.pageItems.map((c) => (
@@ -117,7 +119,7 @@ export function ConfigPage() {
                     </span>
                     <div className="min-w-0">
                       <p className="truncate text-sm">{CLI_LABELS[c.kind] ?? c.kind}</p>
-                      <p className="text-xs text-fg-subtle">não instalada</p>
+                      <p className="text-xs text-fg-subtle">{t('config.naoInstalada')}</p>
                     </div>
                   </div>
                 ))}
@@ -146,6 +148,7 @@ function ConfigCard({
   onModel: (m: string) => void;
   onThinking: (v: boolean) => void;
 }) {
+  const t = useT();
   const enabled = config?.enabled ?? false;
   const model = config?.defaultModel ?? cli.defaultModel ?? '';
 
@@ -170,8 +173,8 @@ function ConfigCard({
       <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
         <div>
           <p className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-fg-muted">
-            Modelo padrão
-            <HintTip content={`${cli.models.length} modelo(s) disponível(is) nesta CLI.`} />
+            {t('config.modeloPadrao')}
+            <HintTip content={t('config.modeloPadrao.hint', { count: cli.models.length })} />
           </p>
           <Select
             size="sm"
@@ -188,15 +191,15 @@ function ConfigCard({
               checked={config?.thinkingDefault ?? false}
               onChange={onThinking}
               disabled={!enabled}
-              label="Thinking por padrão"
+              label={t('config.thinking')}
             />
-            <HintTip content="Liga o raciocínio estendido por padrão (pode aumentar latência e custo)." />
+            <HintTip content={t('config.thinking.hint')} />
           </div>
         )}
 
         {saved && (
           <p className="flex items-center gap-1 text-xs text-ok">
-            <Check size={12} /> salvo
+            <Check size={12} /> {t('config.salvo')}
           </p>
         )}
       </div>

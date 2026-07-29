@@ -7,10 +7,12 @@ import { Badge } from '../components/ui/badge.js';
 import { PageHeader, EmptyState, Skeleton } from '../components/ui/page-header.js';
 import { Pagination, usePagination } from '../components/ui/pagination.js';
 import { HintTip } from '../components/ui/tooltip.js';
+import { useT } from '../lib/i18n/index.js';
 
 type Usage = Awaited<ReturnType<typeof api.usage>>;
 
 export function UsagePage() {
+  const t = useT();
   const [usage, setUsage] = useState<Usage | null>(null);
   const pg = usePagination(usage?.recent ?? [], 10);
 
@@ -21,7 +23,7 @@ export function UsagePage() {
   if (!usage) {
     return (
       <main className="flex flex-col gap-6">
-        <PageHeader eyebrow="Observabilidade" title="Uso & Logs" />
+        <PageHeader eyebrow={t('usage.eyebrow')} title={t('usage.title')} />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-20" />
@@ -38,21 +40,21 @@ export function UsagePage() {
   return (
     <main className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Observabilidade"
-        title="Uso & Logs"
-        subtitle="Métricas dos últimos 7 dias — requests, tokens, latência e histórico."
+        eyebrow={t('usage.eyebrow')}
+        title={t('usage.title')}
+        subtitle={t('usage.subtitle')}
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Kpi label="Requests · 7d" value={usage.totalRequests.toLocaleString('pt-BR')} />
-        <Kpi label="Tokens · 7d" value={usage.totalTokens.toLocaleString('pt-BR')} />
-        <Kpi label="Latência média" value={`${usage.avgLatencyMs} ms`} />
-        <Kpi label="Erros" value={usage.errors} tone={usage.errors > 0 ? 'err' : undefined} />
+        <Kpi label={t('usage.kpiRequests')} value={usage.totalRequests.toLocaleString('pt-BR')} />
+        <Kpi label={t('usage.kpiTokens')} value={usage.totalTokens.toLocaleString('pt-BR')} />
+        <Kpi label={t('usage.kpiLatency')} value={`${usage.avgLatencyMs} ms`} />
+        <Kpi label={t('usage.kpiErrors')} value={usage.errors} tone={usage.errors > 0 ? 'err' : undefined} />
       </div>
 
       {/* gráfico por dia */}
       <Card className="p-5">
-        <h3 className="mb-5 text-sm font-semibold text-fg-muted">Requests por dia</h3>
+        <h3 className="mb-5 text-sm font-semibold text-fg-muted">{t('usage.requestsPerDay')}</h3>
         <div className="flex h-44 items-stretch gap-2">
           {usage.byDay.map((d) => (
             <div key={d.day} className="flex flex-1 flex-col items-center gap-1.5">
@@ -62,7 +64,7 @@ export function UsagePage() {
                   style={{
                     height: `${Math.max(d.requests > 0 ? 6 : 0, (d.requests / maxDay) * 100)}%`,
                   }}
-                  title={`${d.requests} requests · ${d.tokens} tokens`}
+                  title={t('usage.barTooltip', { requests: d.requests, tokens: d.tokens })}
                 />
               </div>
               <span className="text-2xs text-fg-subtle">{d.day.slice(5)}</span>
@@ -75,16 +77,16 @@ export function UsagePage() {
       <div className="grid gap-4 lg:grid-cols-[1fr_1.6fr]">
         {/* por modelo */}
         <Card className="p-5">
-          <h3 className="mb-3 text-sm font-semibold text-fg-muted">Por modelo</h3>
+          <h3 className="mb-3 text-sm font-semibold text-fg-muted">{t('usage.byModel')}</h3>
           {models.length === 0 ? (
-            <EmptyState>Sem uso ainda.</EmptyState>
+            <EmptyState>{t('usage.noUsageYet')}</EmptyState>
           ) : (
             <div className="flex flex-col gap-2.5">
               {models.map(([model, v]) => (
                 <div key={model} className="flex items-center justify-between text-sm">
                   <span className="font-mono text-xs">{model}</span>
                   <span className="font-mono text-xs text-fg-muted">
-                    {v.requests} req · {v.tokens.toLocaleString('pt-BR')} tk
+                    {t('usage.modelRow', { requests: v.requests, tokens: v.tokens.toLocaleString('pt-BR') })}
                   </span>
                 </div>
               ))}
@@ -95,20 +97,20 @@ export function UsagePage() {
         {/* recentes */}
         <Card className="p-5">
           <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-fg-muted">
-            Requests recentes
-            <HintTip content="Cada linha é uma chamada ao proxy. ~ indica tokens estimados." />
+            {t('usage.recentRequests')}
+            <HintTip content={t('usage.recentHint')} />
           </h3>
           {usage.recent.length === 0 ? (
-            <EmptyState icon={<Activity size={26} />}>Nenhum request registrado.</EmptyState>
+            <EmptyState icon={<Activity size={26} />}>{t('usage.noRequests')}</EmptyState>
           ) : (
             <>
               <div className="overflow-hidden rounded-lg border border-border">
                 <div className="grid grid-cols-[1.1fr_1fr_0.8fr_0.7fr_0.5fr] border-b border-border bg-surface-3/50 px-3 py-2 text-2xs font-medium uppercase tracking-wider text-fg-subtle">
-                  <span>Quando</span>
-                  <span>Key</span>
-                  <span>Model</span>
-                  <span>Tokens</span>
-                  <span>Status</span>
+                  <span>{t('usage.colWhen')}</span>
+                  <span>{t('usage.colKey')}</span>
+                  <span>{t('usage.colModel')}</span>
+                  <span>{t('usage.colTokens')}</span>
+                  <span>{t('usage.colStatus')}</span>
                 </div>
                 {pg.pageItems.map((r, i) => (
                   <div
@@ -135,7 +137,7 @@ export function UsagePage() {
                   </div>
                 ))}
               </div>
-              <Pagination {...pg} label="requests" />
+              <Pagination {...pg} label={t('usage.paginationLabel')} />
             </>
           )}
         </Card>

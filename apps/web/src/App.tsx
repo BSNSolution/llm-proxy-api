@@ -24,20 +24,23 @@ import { LoginPage } from './pages/Login.js';
 import { SetupAdminPage } from './pages/SetupAdmin.js';
 import { Logo, LogoMark } from './components/logo.js';
 import { Tooltip } from './components/ui/tooltip.js';
+import { LangSwitch } from './components/lang-switch.js';
+import { useT } from './lib/i18n/index.js';
 import { cn } from './lib/cn.js';
 import { api } from './lib/api.js';
 
-type NavItem = { to: string; label: string; icon: LucideIcon; end?: boolean; hint: string; adminOnly?: boolean };
+// label/hint são CHAVES i18n (resolvidas na renderização com t()).
+type NavItem = { to: string; key: string; icon: LucideIcon; end?: boolean; adminOnly?: boolean };
 
 const NAV: NavItem[] = [
-  { to: '/', label: 'Setup', icon: Cpu, end: true, hint: 'Detecta CLIs e gera a primeira API key.' },
-  { to: '/proxy', label: 'Proxy API', icon: KeyRound, hint: 'Gerencie API keys, limites e a URL do proxy.' },
-  { to: '/usage', label: 'Uso & Logs', icon: BarChart3, hint: 'Métricas de uso, tokens e histórico.' },
-  { to: '/chat', label: 'Chat', icon: MessagesSquare, hint: 'Converse com suas LLMs pela interface.' },
-  { to: '/router', label: 'Router', icon: Workflow, hint: 'Defina qual LLM usa para cada função (1 key, várias especialistas).' },
-  { to: '/combos', label: 'Fontes & Combos', icon: Layers, hint: 'Fontes HTTP (deploy servidor) e combos com fallback automático.' },
-  { to: '/config', label: 'Configurações', icon: Settings, hint: 'Ative CLIs e defina modelos padrão.' },
-  { to: '/users', label: 'Usuários', icon: Users, hint: 'Usuários, papéis e sessões ativas.', adminOnly: true },
+  { to: '/', key: 'setup', icon: Cpu, end: true },
+  { to: '/proxy', key: 'proxy', icon: KeyRound },
+  { to: '/usage', key: 'usage', icon: BarChart3 },
+  { to: '/chat', key: 'chat', icon: MessagesSquare },
+  { to: '/router', key: 'router', icon: Workflow },
+  { to: '/combos', key: 'combos', icon: Layers },
+  { to: '/config', key: 'config', icon: Settings },
+  { to: '/users', key: 'users', icon: Users, adminOnly: true },
 ];
 
 /** NAV visível para o papel do usuário atual. */
@@ -46,6 +49,7 @@ function navFor(role: string): NavItem[] {
 }
 
 export function App() {
+  const t = useT();
   const [authed, setAuthed] = useState<boolean | null>(null);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [email, setEmail] = useState('');
@@ -95,7 +99,7 @@ export function App() {
         {/* Topbar mobile */}
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-bg/80 px-4 py-3 backdrop-blur-lg lg:hidden">
           <Logo />
-          <span className="text-sm font-medium text-fg-muted">{activeItem?.label}</span>
+          <span className="text-sm font-medium text-fg-muted">{activeItem ? t('nav.' + activeItem.key) : ''}</span>
         </header>
 
         {/* Conteúdo */}
@@ -131,6 +135,7 @@ function DesktopSidebar({
   onLogout: () => void;
 }) {
   const { pathname } = useLocation();
+  const t = useT();
   return (
     <aside className="sticky top-0 hidden h-dvh w-[236px] shrink-0 flex-col border-r border-border bg-surface/50 px-3 py-4 backdrop-blur-sm lg:flex">
       <div className="px-2 pb-6 pt-1">
@@ -156,29 +161,32 @@ function DesktopSidebar({
                 <span className="absolute inset-y-1.5 left-0 w-[3px] rounded-full bg-primary" />
               )}
               <Icon size={17} className={active ? 'text-primary' : ''} />
-              {item.label}
+              {t('nav.' + item.key)}
             </NavLink>
           );
         })}
       </nav>
 
-      <div className="mt-auto flex items-center gap-2.5 border-t border-border px-1 pt-3">
+      <div className="mt-auto flex flex-col gap-2 border-t border-border px-1 pt-3">
+      <LangSwitch className="px-1" />
+      <div className="flex items-center gap-2.5">
         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-[rgb(90_50_200)] text-xs font-semibold text-white">
           {email.slice(0, 1).toUpperCase()}
         </span>
         <span className="min-w-0 flex-1 truncate text-xs text-fg-muted">{email}</span>
-        <Tooltip content="Sair da conta" side="top">
+        <Tooltip content={t('nav.logout')} side="top">
           <button
             className="rounded-md p-1.5 text-fg-subtle transition-colors hover:bg-surface-2 hover:text-err"
             onClick={async () => {
               await api.logout();
               onLogout();
             }}
-            aria-label="Sair"
+            aria-label={t('nav.logout')}
           >
             <LogOut size={16} />
           </button>
         </Tooltip>
+      </div>
       </div>
     </aside>
   );
@@ -186,6 +194,7 @@ function DesktopSidebar({
 
 function MobileNav({ items }: { items: NavItem[] }) {
   const { pathname } = useLocation();
+  const t = useT();
   return (
     <nav className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-around border-t border-border bg-bg/90 px-2 py-1.5 backdrop-blur-lg lg:hidden">
       {items.map((item) => {
@@ -201,7 +210,7 @@ function MobileNav({ items }: { items: NavItem[] }) {
             )}
           >
             <Icon size={19} />
-            <span className="max-w-full truncate">{item.label.split(' ')[0]}</span>
+            <span className="max-w-full truncate">{t('nav.' + item.key).split(' ')[0]}</span>
           </NavLink>
         );
       })}

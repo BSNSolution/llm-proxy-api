@@ -8,11 +8,12 @@ import { Modal } from '../components/ui/modal.js';
 import { PageHeader, EmptyState } from '../components/ui/page-header.js';
 import { HintTip } from '../components/ui/tooltip.js';
 import { CliIcon, CLI_LABELS } from '../components/cli-card.js';
+import { useT } from '../lib/i18n/index.js';
 
 const HTTP_PROVIDERS = [
-  { id: 'anthropic', label: 'Anthropic (Claude)', hint: 'Espelha a CLI Claude via API key — usado em container/VPS ou como fallback.' },
-  { id: 'openai', label: 'OpenAI (Codex/GPT)', hint: 'Espelha a CLI Codex via API key.' },
-  { id: 'gemini', label: 'Google Gemini', hint: 'Espelha a CLI Gemini via API key.' },
+  { id: 'anthropic', label: 'Anthropic (Claude)', hintKey: 'combos.http.hint.anthropic' },
+  { id: 'openai', label: 'OpenAI (Codex/GPT)', hintKey: 'combos.http.hint.openai' },
+  { id: 'gemini', label: 'Google Gemini', hintKey: 'combos.http.hint.gemini' },
 ];
 
 interface DraftItem {
@@ -23,6 +24,7 @@ interface DraftItem {
 }
 
 export function CombosPage() {
+  const t = useT();
   const [combos, setCombos] = useState<ComboView[]>([]);
   const [providers, setProviders] = useState<HttpProviderView[]>([]);
   const [available, setAvailable] = useState<string[]>([]);
@@ -46,11 +48,11 @@ export function CombosPage() {
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
-        title="Fontes & Combos"
-        subtitle="Configure fontes HTTP (para rodar em servidor/Docker ou como fallback) e monte combos com fallback automático entre LLMs."
+        title={t('combos.title')}
+        subtitle={t('combos.subtitle')}
         action={
           <Button onClick={() => setShowCombo(true)}>
-            <Plus size={16} /> Novo combo
+            <Plus size={16} /> {t('combos.new')}
           </Button>
         }
       />
@@ -58,8 +60,8 @@ export function CombosPage() {
       {/* ── Fontes HTTP ── */}
       <section className="mb-8">
         <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
-          <Server size={13} /> Fontes HTTP (deploy em servidor / fallback)
-          <HintTip content="Onde não há CLI instalada (container/VPS/Cloudflare), o proxy usa estas API keys. A key é cifrada e nunca exibida." />
+          <Server size={13} /> {t('combos.http.heading')}
+          <HintTip content={t('combos.http.headingHint')} />
         </h3>
         <div className="grid gap-2.5 sm:grid-cols-3">
           {HTTP_PROVIDERS.map((p) => {
@@ -68,18 +70,18 @@ export function CombosPage() {
               <div key={p.id} className="rounded-xl border border-border bg-surface-2/40 p-3.5">
                 <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
                   {p.label}
-                  <HintTip content={p.hint} />
+                  <HintTip content={t(p.hintKey)} />
                 </div>
                 {cfg?.keySet ? (
                   <div className="mb-2.5 flex items-center gap-1.5 text-xs text-ok">
-                    <Check size={13} /> Key configurada
+                    <Check size={13} /> {t('combos.http.keySet')}
                   </div>
                 ) : (
-                  <div className="mb-2.5 text-xs text-fg-subtle">Sem key</div>
+                  <div className="mb-2.5 text-xs text-fg-subtle">{t('combos.http.noKey')}</div>
                 )}
                 <div className="flex gap-1.5">
                   <Button size="sm" variant="secondary" onClick={() => setKeyModal(p.id)}>
-                    <KeyRound size={13} /> {cfg?.keySet ? 'Trocar' : 'Configurar'}
+                    <KeyRound size={13} /> {cfg?.keySet ? t('combos.http.change') : t('combos.http.configure')}
                   </Button>
                   {cfg?.keySet && (
                     <Button
@@ -103,12 +105,12 @@ export function CombosPage() {
       {/* ── Combos ── */}
       <section>
         <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
-          <Layers size={13} /> Combos (fallback multi-tier)
-          <HintTip content="Uma lista ordenada de LLMs. Se a 1ª falhar (quota/erro), cai para a próxima — sem parar. Use model: combo:slug." />
+          <Layers size={13} /> {t('combos.list.heading')}
+          <HintTip content={t('combos.list.headingHint')} />
         </h3>
         {combos.length === 0 ? (
-          <EmptyState icon={<Layers size={22} />} title="Nenhum combo ainda">
-            Crie um combo para ter fallback automático: subscription → alternativa → emergência.
+          <EmptyState icon={<Layers size={22} />} title={t('combos.list.emptyTitle')}>
+            {t('combos.list.emptyBody')}
           </EmptyState>
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -194,17 +196,18 @@ function HttpKeyModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [saving, setSaving] = useState(false);
 
   return (
-    <Modal title={`Configurar ${label}`} onClose={onClose}>
+    <Modal title={t('combos.keyModal.title', { label })} onClose={onClose}>
       <div className="flex flex-col gap-3">
         <p className="text-sm text-fg-muted">
-          A API key é cifrada (AES-256-GCM) e nunca mais exibida. Usada em servidor sem CLI ou como fallback nos combos.
+          {t('combos.keyModal.desc')}
         </p>
-        <label className="text-xs font-medium text-fg-muted">API key</label>
+        <label className="text-xs font-medium text-fg-muted">{t('combos.keyModal.apiKey')}</label>
         <input
           type="password"
           value={apiKey}
@@ -212,16 +215,16 @@ function HttpKeyModal({
           placeholder="sk-… / AI…"
           className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-primary/50 focus:outline-none"
         />
-        <label className="text-xs font-medium text-fg-muted">Base URL (opcional)</label>
+        <label className="text-xs font-medium text-fg-muted">{t('combos.keyModal.baseUrl')}</label>
         <input
           value={baseUrl}
           onChange={(e) => setBaseUrl(e.target.value)}
-          placeholder="deixe vazio para o endpoint oficial"
+          placeholder={t('combos.keyModal.baseUrlPlaceholder')}
           className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-primary/50 focus:outline-none"
         />
         <div className="mt-1 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             loading={saving}
@@ -236,7 +239,7 @@ function HttpKeyModal({
               }
             }}
           >
-            Salvar
+            {t('common.save')}
           </Button>
         </div>
       </div>
@@ -255,6 +258,7 @@ function ComboModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [items, setItems] = useState<DraftItem[]>([{ source: 'cli', cliKind: available[0], model: '' }]);
@@ -271,23 +275,23 @@ function ComboModal({
   }
 
   return (
-    <Modal title="Novo combo" onClose={onClose} size="lg">
+    <Modal title={t('combos.modal.title')} onClose={onClose} size="lg">
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs font-medium text-fg-muted">Nome</label>
+            <label className="text-xs font-medium text-fg-muted">{t('common.name')}</label>
             <input
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
                 if (!slug) setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''));
               }}
-              placeholder="Meu stack"
+              placeholder={t('combos.modal.namePlaceholder')}
               className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-fg focus:border-primary/50 focus:outline-none"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-fg-muted">Slug (usado como combo:slug)</label>
+            <label className="text-xs font-medium text-fg-muted">{t('combos.modal.slug')}</label>
             <input
               value={slug}
               onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
@@ -299,7 +303,7 @@ function ComboModal({
 
         <div>
           <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-fg-muted">
-            <GripVertical size={13} /> Ordem de fallback (1º tenta primeiro)
+            <GripVertical size={13} /> {t('combos.modal.order')}
           </div>
           <div className="flex flex-col gap-1.5">
             {items.map((it, i) => (
@@ -317,7 +321,7 @@ function ComboModal({
                 <input
                   value={it.model}
                   onChange={(e) => setItem(i, { model: e.target.value })}
-                  placeholder="modelo"
+                  placeholder={t('combos.modal.modelPlaceholder')}
                   className="w-28 rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-fg focus:border-primary/50 focus:outline-none"
                 />
                 {items.length > 1 && (
@@ -334,7 +338,7 @@ function ComboModal({
             className="mt-1.5"
             onClick={() => setItems((a) => [...a, { source: 'cli', cliKind: available[0], model: '' }])}
           >
-            <Plus size={13} /> Adicionar LLM
+            <Plus size={13} /> {t('combos.modal.addLlm')}
           </Button>
         </div>
 
@@ -342,7 +346,7 @@ function ComboModal({
 
         <div className="mt-1 flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             loading={saving}
@@ -363,13 +367,13 @@ function ComboModal({
                 });
                 onSaved();
               } catch (e) {
-                setErr(String((e as Error).message ?? 'Falha ao criar.'));
+                setErr(String((e as Error).message ?? t('combos.modal.createError')));
               } finally {
                 setSaving(false);
               }
             }}
           >
-            Criar combo
+            {t('combos.modal.submit')}
           </Button>
         </div>
       </div>

@@ -12,11 +12,13 @@ import { Pagination, usePagination } from '../components/ui/pagination.js';
 import { HintTip, Tooltip } from '../components/ui/tooltip.js';
 import { CLI_KINDS } from '@llm-proxy/shared-types';
 import { CliIcon, CLI_LABELS } from '../components/cli-card.js';
+import { useT } from '../lib/i18n/index.js';
 
 type ProxyInfo = { openaiBaseUrl: string; anthropicBaseUrl: string };
 type Usage = { totalRequests: number; totalTokens: number };
 
 export function ProxyPage() {
+  const t = useT();
   const [keys, setKeys] = useState<ProxyKeyView[]>([]);
   const [info, setInfo] = useState<ProxyInfo | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
@@ -52,14 +54,14 @@ export function ProxyPage() {
           disabled: !usable,
           hint: usable
             ? http && !present
-              ? 'via HTTP'
+              ? t('proxy.viaHttp')
               : undefined
             : !present
-              ? 'não instalada'
-              : 'inativa no proxy',
+              ? t('proxy.naoInstalada')
+              : t('proxy.inativaNoProxy'),
         };
       }),
-    [presentKinds, enabledKinds, httpKinds],
+    [presentKinds, enabledKinds, httpKinds, t],
   );
   const noUsableCli = cliOptions.every((o) => o.disabled);
 
@@ -117,7 +119,7 @@ export function ProxyPage() {
     setError(null);
     setCreating(true);
     try {
-      const res = await api.createKey({ name: name || 'Minha key', cliKind });
+      const res = await api.createKey({ name: name || t('proxy.minhaKey'), cliKind });
       setCreated(res);
       setName('');
       await reload();
@@ -133,17 +135,17 @@ export function ProxyPage() {
   return (
     <main className="flex flex-col gap-6">
       <PageHeader
-        eyebrow="Gestão"
-        title="Proxy API"
-        subtitle="Gere API keys, defina limites e copie a URL para configurar no seu client."
+        eyebrow={t('proxy.eyebrow')}
+        title={t('proxy.titulo')}
+        subtitle={t('proxy.subtitulo')}
       />
 
       {/* KPIs */}
       {usage && (
         <div className="grid grid-cols-3 gap-3">
-          <Kpi label="Requests · 7d" value={usage.totalRequests.toLocaleString('pt-BR')} />
-          <Kpi label="Tokens · 7d" value={usage.totalTokens.toLocaleString('pt-BR')} />
-          <Kpi label="Keys ativas" value={activeKeys} />
+          <Kpi label={t('proxy.kpiRequests')} value={usage.totalRequests.toLocaleString('pt-BR')} />
+          <Kpi label={t('proxy.kpiTokens')} value={usage.totalTokens.toLocaleString('pt-BR')} />
+          <Kpi label={t('proxy.kpiKeysAtivas')} value={activeKeys} />
         </div>
       )}
 
@@ -151,12 +153,12 @@ export function ProxyPage() {
       {info && (
         <Card className="p-5">
           <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-fg-muted">
-            Como configurar no seu client
-            <HintTip content="Aponte seu client (Cursor, Continue, SDKs) para esta URL usando a API key como Bearer (OpenAI) ou x-api-key (Anthropic)." />
+            {t('proxy.comoConfigurar')}
+            <HintTip content={t('proxy.comoConfigurarTip')} />
           </h3>
           <div className="grid gap-3 sm:grid-cols-2">
-            <UrlRow label="Base URL — OpenAI" url={info.openaiBaseUrl} />
-            <UrlRow label="Base URL — Anthropic" url={info.anthropicBaseUrl} />
+            <UrlRow label={t('proxy.baseUrlOpenai')} url={info.openaiBaseUrl} />
+            <UrlRow label={t('proxy.baseUrlAnthropic')} url={info.anthropicBaseUrl} />
           </div>
         </Card>
       )}
@@ -164,14 +166,14 @@ export function ProxyPage() {
       {/* Criar key */}
       <Card className="p-5">
         <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
-          <Field label="Nome da key" className="flex-1">
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Minha key" />
+          <Field label={t('proxy.nomeDaKey')} className="flex-1">
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('proxy.minhaKey')} />
           </Field>
           <Field
             label={
               <span className="inline-flex items-center gap-1">
                 CLI
-                <HintTip content="Só CLIs instaladas e ativas no proxy (em Configurações) podem gerar key. As demais aparecem desabilitadas." />
+                <HintTip content={t('proxy.cliTip')} />
               </span>
             }
             className="sm:w-52"
@@ -180,12 +182,12 @@ export function ProxyPage() {
           </Field>
           <Button onClick={create} loading={creating} disabled={noUsableCli}>
             {!creating && <Plus size={16} />}
-            Gerar key
+            {t('proxy.gerarKey')}
           </Button>
         </div>
         {noUsableCli && (
           <p className="mt-3 text-xs text-warn">
-            Nenhuma CLI está pronta para o proxy. Instale uma no Setup e ative-a em Configurações.
+            {t('proxy.nenhumaCliPronta')}
           </p>
         )}
       </Card>
@@ -200,34 +202,34 @@ export function ProxyPage() {
         <Card className="border-primary/40 p-5 shadow-glow">
           <div className="mb-3 flex items-center gap-2 text-primary">
             <KeyRound size={16} />
-            <h3 className="text-sm font-semibold">Key criada — copie agora (mostrada só uma vez)</h3>
+            <h3 className="text-sm font-semibold">{t('proxy.keyCriada')}</h3>
           </div>
-          <UrlRow label="API key" url={created.rawKey} />
+          <UrlRow label={t('proxy.apiKey')} url={created.rawKey} />
         </Card>
       )}
 
       {/* Tabela / cards de keys */}
       <Card className="p-5">
-        <h3 className="mb-4 text-sm font-semibold text-fg-muted">Suas API keys</h3>
+        <h3 className="mb-4 text-sm font-semibold text-fg-muted">{t('proxy.suasApiKeys')}</h3>
         {keys.length === 0 ? (
-          <EmptyState icon={<KeyRound size={28} />} title="Nenhuma key ainda">
-            Gere a primeira acima para começar a usar o proxy.
+          <EmptyState icon={<KeyRound size={28} />} title={t('proxy.nenhumaKeyAinda')}>
+            {t('proxy.gereAPrimeira')}
           </EmptyState>
         ) : (
           <>
             {/* Desktop: tabela */}
             <div className="hidden overflow-hidden rounded-lg border border-border md:block">
               <div className="grid grid-cols-[1.4fr_1fr_1fr_0.8fr_1fr_0.9fr_168px] border-b border-border bg-surface-3/50 px-4 py-2.5 text-2xs font-medium uppercase tracking-wider text-fg-subtle">
-                <span>Nome</span>
+                <span>{t('common.name')}</span>
                 <span>CLI</span>
-                <span>Modelo</span>
+                <span>{t('common.model')}</span>
                 <span className="flex items-center gap-1">
-                  Rate <HintTip content="Requisições por minuto permitidas." />
+                  {t('proxy.rate')} <HintTip content={t('proxy.rateTip')} />
                 </span>
                 <span className="flex items-center gap-1">
-                  Uso hoje <HintTip content="Tokens consumidos hoje / quota diária." />
+                  {t('proxy.usoHoje')} <HintTip content={t('proxy.usoHojeTip')} />
                 </span>
-                <span>Status</span>
+                <span>{t('common.status')}</span>
                 <span />
               </div>
               {pg.pageItems.map((k) => (
@@ -279,7 +281,7 @@ export function ProxyPage() {
                   )}
                   <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-xs text-fg-muted">
                     <span className="font-mono">
-                      {k.rateLimitPerMin}/min · {k.usedTokensToday.toLocaleString('pt-BR')} tk hoje
+                      {k.rateLimitPerMin}/min · {k.usedTokensToday.toLocaleString('pt-BR')} {t('proxy.tkHoje')}
                       {k.tokenSaver && <span className="ml-1.5 text-primary/80">· saver</span>}
                       {k.terseness !== 'off' && <span className="ml-1 text-primary/80">· {k.terseness}</span>}
                     </span>
@@ -293,14 +295,14 @@ export function ProxyPage() {
                 </div>
               ))}
             </div>
-            <Pagination {...pg} label="keys" />
+            <Pagination {...pg} label={t('proxy.keys')} />
           </>
         )}
       </Card>
 
       {rotated && (
-        <Modal onClose={() => setRotated(null)} title={`Nova key para "${rotated.name}"`}>
-          <p className="mb-3 text-sm text-ok">Copie agora — mostrada só uma vez:</p>
+        <Modal onClose={() => setRotated(null)} title={t('proxy.novaKeyPara', { name: rotated.name })}>
+          <p className="mb-3 text-sm text-ok">{t('proxy.copieAgora')}</p>
           <UrlRow label="" url={rotated.rawKey} />
         </Modal>
       )}
@@ -320,15 +322,17 @@ export function ProxyPage() {
 }
 
 function StatusBadge({ k }: { k: ProxyKeyView }) {
+  const t = useT();
   return (
     <Badge dot tone={k.revokedAt ? 'err' : k.enabled ? 'ok' : 'neutral'}>
-      {k.revokedAt ? 'revogada' : k.enabled ? 'ativa' : 'off'}
+      {k.revokedAt ? t('proxy.revogada') : k.enabled ? t('proxy.ativa') : t('proxy.off')}
     </Badge>
   );
 }
 
 /** Barra de quota diária + countdown ao vivo até o reset (meia-noite). */
 function QuotaBar({ used, total, resetIn }: { used: number; total: number; resetIn: number }) {
+  const t = useT();
   const [remaining, setRemaining] = useState(resetIn);
   useEffect(() => {
     setRemaining(resetIn);
@@ -344,9 +348,11 @@ function QuotaBar({ used, total, resetIn }: { used: number; total: number; reset
     <div className="mt-3">
       <div className="mb-1 flex items-center justify-between text-xs text-fg-muted">
         <span>
-          {used.toLocaleString('pt-BR')} / {total.toLocaleString('pt-BR')} tokens
+          {used.toLocaleString('pt-BR')} / {total.toLocaleString('pt-BR')} {t('proxy.tokens')}
         </span>
-        <span className="font-mono text-fg-subtle">reset em {h}h{String(m).padStart(2, '0')}m</span>
+        <span className="font-mono text-fg-subtle">
+          {t('proxy.resetEm', { h, m: String(m).padStart(2, '0') })}
+        </span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
         <div className={`h-full rounded-full transition-all ${tone}`} style={{ width: `${pct}%` }} />
@@ -366,26 +372,27 @@ function RowActions({
   onRotate: () => void;
   onReload: () => void;
 }) {
+  const t = useT();
   return (
     <span className="flex justify-end gap-0.5">
-      <Tooltip content="Editar limites, modelos e CORS.">
+      <Tooltip content={t('proxy.editarTip')}>
         <Button variant="ghost" size="icon-sm" onClick={onEdit}>
           <Pencil size={15} />
         </Button>
       </Tooltip>
-      <Tooltip content="Gerar nova key (a antiga para de funcionar).">
+      <Tooltip content={t('proxy.rotacionarTip')}>
         <Button variant="ghost" size="icon-sm" onClick={onRotate}>
           <RefreshCw size={15} />
         </Button>
       </Tooltip>
       {!k.revokedAt && (
-        <Tooltip content="Revogar: deixa de autenticar, histórico mantido.">
+        <Tooltip content={t('proxy.revogarTip')}>
           <Button variant="ghost" size="icon-sm" onClick={() => api.revokeKey(k.id).then(onReload)}>
             <Ban size={15} />
           </Button>
         </Tooltip>
       )}
-      <Tooltip content="Excluir key e histórico. Não desfaz.">
+      <Tooltip content={t('proxy.excluirTip')}>
         <Button
           variant="ghost"
           size="icon-sm"
@@ -409,6 +416,7 @@ function Kpi({ label, value }: { label: string; value: string | number }) {
 }
 
 function UrlRow({ label, url }: { label: string; url: string }) {
+  const t = useT();
   const [copied, setCopied] = useState(false);
   return (
     <div>
@@ -422,7 +430,7 @@ function UrlRow({ label, url }: { label: string; url: string }) {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           }}
-          aria-label="Copiar"
+          aria-label={t('common.copy')}
         >
           {copied ? <Check size={15} className="text-ok" /> : <Copy size={15} />}
         </button>
@@ -465,6 +473,7 @@ function EditKeyModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(keyView.name);
   const [rate, setRate] = useState(String(keyView.rateLimitPerMin));
   const [quota, setQuota] = useState(keyView.dailyTokenQuota ? String(keyView.dailyTokenQuota) : '');
@@ -495,23 +504,23 @@ function EditKeyModal({
   }
 
   return (
-    <Modal title={`Editar "${keyView.name}"`} onClose={onClose}>
+    <Modal title={t('proxy.editarTitulo', { name: keyView.name })} onClose={onClose}>
       <div className="flex flex-col gap-3">
-        <Field label="Nome">
+        <Field label={t('common.name')}>
           <Input value={name} onChange={(e) => setName(e.target.value)} />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Rate (req/min)">
+          <Field label={t('proxy.rateReqMin')}>
             <Input value={rate} onChange={(e) => setRate(e.target.value)} />
           </Field>
-          <Field label="Quota diária (vazio = ∞)">
+          <Field label={t('proxy.quotaDiaria')}>
             <Input value={quota} onChange={(e) => setQuota(e.target.value)} />
           </Field>
         </div>
-        <Field label="Modelos permitidos (vírgula)">
+        <Field label={t('proxy.modelosPermitidos')}>
           <Input value={models} onChange={(e) => setModels(e.target.value)} />
         </Field>
-        <Field label="CORS origins (vírgula, * = todos)">
+        <Field label={t('proxy.corsOrigins')}>
           <Input
             value={cors}
             onChange={(e) => setCors(e.target.value)}
@@ -522,15 +531,15 @@ function EditKeyModal({
         <div className="rounded-lg border border-border bg-surface-2/40 p-3">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-sm">
-              <HintTip content="Comprime saídas de ferramentas (git diff/grep/ls/tree/logs) antes de ir ao LLM. Economiza tokens de entrada sem perder o essencial." />
-              Token Saver
+              <HintTip content={t('proxy.tokenSaverTip')} />
+              {t('proxy.tokenSaver')}
             </div>
             <Switch checked={tokenSaver} onChange={setTokenSaver} />
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-sm">
-              <HintTip content="Estilo de resposta enxuto p/ economizar tokens de saída. Caveman = respostas telegráficas; Ponytail = código mínimo (YAGNI)." />
-              Respostas enxutas
+              <HintTip content={t('proxy.respostasEnxutasTip')} />
+              {t('proxy.respostasEnxutas')}
             </div>
             <Select
               size="sm"
@@ -538,9 +547,9 @@ function EditKeyModal({
               value={terseness}
               onChange={setTerseness}
               options={[
-                { value: 'off', label: 'Desligado' },
-                { value: 'caveman', label: 'Caveman (conciso)' },
-                { value: 'ponytail', label: 'Ponytail (YAGNI)' },
+                { value: 'off', label: t('proxy.tersenessOff') },
+                { value: 'caveman', label: t('proxy.tersenessCaveman') },
+                { value: 'ponytail', label: t('proxy.tersenessPonytail') },
               ]}
             />
           </div>
@@ -548,10 +557,10 @@ function EditKeyModal({
 
         <div className="mt-2 flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button onClick={save} loading={saving}>
-            Salvar
+            {t('common.save')}
           </Button>
         </div>
       </div>
