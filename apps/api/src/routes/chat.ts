@@ -6,6 +6,7 @@ import { CLI_KINDS, type CliKind, type TurnMessage } from '@llm-proxy/shared-typ
 import { executeTurn } from '../services/turn-runner.js';
 import { generateImage, supportsImageGen } from '../services/image-service.js';
 import { sseHeaders } from '../proxy/shared.js';
+import { authRateLimit } from '../services/auth-rate-limit.js';
 
 /**
  * Chat interativo pela UI. Usa o mesmo executor de turno do proxy (cli-engine),
@@ -102,6 +103,16 @@ export function registerChatRoutes(app: FastifyInstance): void {
     if (!parsed.success) return reply.status(400).send({ error: parsed.error.message });
 
     const userId = await firstUserId(req.authUser?.id);
+
+    // Rate-limit por usuário: o chat executa a LLM (custo real, sobretudo via
+    // provider HTTP pago). Barra abuso/automação sem atrapalhar uso interativo.
+    const rl = await authRateLimit('chat-send', userId, 30, 60);
+    if (!rl.ok) {
+      return reply
+        .status(429)
+        .send({ error: 'Muitas mensagens em pouco tempo. Aguarde um instante.', retryAfter: rl.retryAfter });
+    }
+
     const session = await prisma.chatSession.findFirst({ where: { id, userId } });
     if (!session) return reply.status(404).send({ error: 'Sessão não encontrada.' });
 

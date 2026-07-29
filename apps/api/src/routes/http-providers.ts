@@ -8,10 +8,42 @@ import { invalidateHttpKeysCache } from '../services/http-providers.js';
 
 // Credenciais HTTP por provider — habilitam deploy em container/VPS/CF (sem CLI)
 // e itens HTTP em combos. A API key é CIFRADA (AES-256-GCM) e nunca devolvida.
+// Anti-SSRF: mesmo sendo admin quem configura, um baseUrl apontando p/ metadata
+// da nuvem (169.254.169.254) ou host interno seria confused-deputy. Exige https
+// (ou http só p/ localhost em dev) e bloqueia IPs privados/link-local/metadata.
+function isSafeBaseUrl(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return false;
+  }
+  if (u.protocol !== 'https:' && !(u.protocol === 'http:' && ['localhost', '127.0.0.1'].includes(u.hostname))) {
+    return false;
+  }
+  const h = u.hostname;
+  const blocked =
+    h === '169.254.169.254' || // metadata AWS/GCP/Azure
+    h === 'metadata.google.internal' ||
+    /^10\./.test(h) ||
+    /^192\.168\./.test(h) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
+    /^169\.254\./.test(h) ||
+    (/^127\./.test(h) && h !== '127.0.0.1') ||
+    h.endsWith('.internal') ||
+    h.endsWith('.local');
+  return !blocked;
+}
+
 const UpsertProvider = z.object({
   provider: z.enum(['anthropic', 'openai', 'gemini']),
   apiKey: z.string().min(8),
-  baseUrl: z.string().url().nullable().optional(),
+  baseUrl: z
+    .string()
+    .url()
+    .refine(isSafeBaseUrl, 'baseUrl deve ser https e não pode apontar para host interno/metadata.')
+    .nullable()
+    .optional(),
   enabled: z.boolean().default(true),
 });
 
