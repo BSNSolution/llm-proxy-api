@@ -23,6 +23,19 @@ Self-hosted · single binary experience · runs on your machine or via Docker.
 
 ---
 
+## Screenshots
+
+**Capability Router** — pick which LLM handles each function; each block only
+offers models that actually support it:
+
+![Router / Workflow](docs/screenshots/router.jpg)
+
+| Proxy API (keys) | Sources & Combos (fallback) |
+|---|---|
+| ![Proxy API](docs/screenshots/proxy.jpg) | ![Sources & Combos](docs/screenshots/combos.jpg) |
+
+---
+
 ## Why
 
 You already pay for AI CLIs (Claude Code, Codex/ChatGPT, Gemini, …). This app lets you
