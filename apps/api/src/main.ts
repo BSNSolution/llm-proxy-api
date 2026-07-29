@@ -33,6 +33,20 @@ async function main(): Promise<void> {
     bodyLimit: 30 * 1024 * 1024,
   });
 
+  // Content-type parser JSON tolerante: um POST com header application/json mas
+  // corpo VAZIO (ex.: /api/detect, /logout — sem body; ou cache antigo do SPA,
+  // proxy que injeta o header) não deve quebrar com "Body cannot be empty". Trata
+  // corpo vazio como {}. (O default do Fastify rejeita com 400.)
+  app.addContentTypeParser('application/json', { parseAs: 'string' }, (_req, body, done) => {
+    const s = typeof body === 'string' ? body.trim() : '';
+    if (s.length === 0) return done(null, {});
+    try {
+      done(null, JSON.parse(s));
+    } catch {
+      done(Object.assign(new Error('JSON inválido no corpo da requisição.'), { statusCode: 400 }), undefined);
+    }
+  });
+
   await app.register(cors, { origin: true, credentials: true });
   await app.register(cookie, { secret: cfg.sessionSecret });
 
