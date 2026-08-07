@@ -81,7 +81,11 @@ export function registerImageRoutes(app: FastifyInstance): void {
     }
 
     const created = Math.floor(Date.now() / 1000);
-    if (response_format === 'b64_json') {
+    // Default = b64_json (comportamento do gpt-image oficial da OpenAI; clients como
+    // o BSN Social esperam data[0].b64_json quando não pedem response_format). Só
+    // devolve url quando explicitamente pedido — evita que o client precise baixar
+    // uma URL do próprio proxy (que costuma ser bloqueada por anti-SSRF em localhost).
+    if (response_format !== 'url') {
       const { readImage } = await import('../services/image-service.js');
       const buf = readImage(res.image.id);
       return reply.send({
