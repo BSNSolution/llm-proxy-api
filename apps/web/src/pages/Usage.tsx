@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Activity } from 'lucide-react';
-import { cn } from '../lib/cn.js';
 import { api } from '../lib/api.js';
 import { Card } from '../components/ui/card.js';
 import { Badge } from '../components/ui/badge.js';
+import { Kpi } from '../components/ui/kpi.js';
 import { PageHeader, EmptyState, Skeleton } from '../components/ui/page-header.js';
 import { Pagination, usePagination } from '../components/ui/pagination.js';
 import { HintTip } from '../components/ui/tooltip.js';
@@ -146,26 +146,3 @@ export function UsagePage() {
   );
 }
 
-function Kpi({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string | number;
-  tone?: 'err';
-}) {
-  return (
-    <div className="rounded-lg border border-border bg-surface-2/60 p-4">
-      <p className="text-2xs font-medium uppercase tracking-wider text-fg-subtle">{label}</p>
-      <p
-        className={cn(
-          'mt-1 font-mono text-[24px] font-semibold tracking-tight',
-          tone === 'err' ? 'text-err' : 'text-fg',
-        )}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}

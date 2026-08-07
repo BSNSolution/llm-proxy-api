@@ -43,6 +43,15 @@ export interface FunctionCapabilityMeta {
   /** modalidade de entrada que o request precisa carregar p/ detecção automática */
   inputModality?: 'image' | 'video' | 'audio' | 'pdf' | 'spreadsheet' | 'slides' | 'text';
   hint: string;
+  /**
+   * Situação da capacidade hoje:
+   *  - 'ready'   (default): há CLI que cumpre e é acessível pelo proxy (router/REST).
+   *  - 'roadmap': ainda NÃO há CLI que cumpra nem endpoint dedicado — a UI mostra
+   *               "Em breve" em vez de um seletor morto (evita prometer o que não entrega).
+   * Ex. roadmap: gerar-áudio/vídeo (nenhuma CLI gera), embeddings e transcrever-áudio
+   * (precisam de /v1/embeddings e /v1/audio/transcriptions, ainda não implementados).
+   */
+  status?: 'ready' | 'roadmap';
 }
 
 export const FUNCTION_CAPABILITY_META: Record<FunctionCapability, FunctionCapabilityMeta> = {
@@ -50,8 +59,8 @@ export const FUNCTION_CAPABILITY_META: Record<FunctionCapability, FunctionCapabi
   'gerar-codigo': { slug: 'gerar-codigo', label: 'Gerar código', group: 'gerar', icon: 'Code2', hint: 'Escrever/editar código em qualquer linguagem.' },
   'gerar-html': { slug: 'gerar-html', label: 'Gerar página HTML', group: 'gerar', icon: 'FileCode2', hint: 'Páginas/landing/componentes HTML+CSS.' },
   'gerar-imagem': { slug: 'gerar-imagem', label: 'Gerar imagem', group: 'gerar', icon: 'ImagePlus', hint: 'Criar imagens (ex.: Codex + GPT Image).' },
-  'gerar-audio': { slug: 'gerar-audio', label: 'Gerar áudio (TTS)', group: 'gerar', icon: 'AudioLines', hint: 'Texto → fala.' },
-  'gerar-video': { slug: 'gerar-video', label: 'Gerar vídeo', group: 'gerar', icon: 'Clapperboard', hint: 'Criar vídeo a partir de prompt.' },
+  'gerar-audio': { slug: 'gerar-audio', label: 'Gerar áudio (TTS)', group: 'gerar', icon: 'AudioLines', hint: 'Texto → fala.', status: 'roadmap' },
+  'gerar-video': { slug: 'gerar-video', label: 'Gerar vídeo', group: 'gerar', icon: 'Clapperboard', hint: 'Criar vídeo a partir de prompt.', status: 'roadmap' },
 
   'analisar-texto': { slug: 'analisar-texto', label: 'Analisar texto', group: 'analisar', icon: 'FileText', inputModality: 'text', hint: 'Interpretar/classificar/extrair de texto.' },
   'analisar-codigo': { slug: 'analisar-codigo', label: 'Analisar código', group: 'analisar', icon: 'FileSearch', inputModality: 'text', hint: 'Revisar/auditar/explicar código.' },
@@ -62,9 +71,9 @@ export const FUNCTION_CAPABILITY_META: Record<FunctionCapability, FunctionCapabi
   'analisar-planilha': { slug: 'analisar-planilha', label: 'Analisar planilha', group: 'analisar', icon: 'Table2', inputModality: 'spreadsheet', hint: 'Excel/CSV: entender dados tabulares.' },
   'analisar-slides': { slug: 'analisar-slides', label: 'Analisar slides', group: 'analisar', icon: 'Presentation', inputModality: 'slides', hint: 'PowerPoint/PPTX: entender apresentação.' },
 
-  'transcrever-audio': { slug: 'transcrever-audio', label: 'Transcrever áudio (STT)', group: 'especial', icon: 'Mic', inputModality: 'audio', hint: 'Áudio → texto.' },
+  'transcrever-audio': { slug: 'transcrever-audio', label: 'Transcrever áudio (STT)', group: 'especial', icon: 'Mic', inputModality: 'audio', hint: 'Áudio → texto.', status: 'roadmap' },
   'web-search': { slug: 'web-search', label: 'Busca na web', group: 'especial', icon: 'Globe', hint: 'Pesquisar na internet.' },
-  embeddings: { slug: 'embeddings', label: 'Embeddings', group: 'especial', icon: 'Boxes', hint: 'Vetorizar texto p/ busca semântica.' },
+  embeddings: { slug: 'embeddings', label: 'Embeddings', group: 'especial', icon: 'Boxes', hint: 'Vetorizar texto p/ busca semântica.', status: 'roadmap' },
 };
 
 // ── Matriz: quais funções cada CLI cumpre ──────────────────────────────────

@@ -128,6 +128,8 @@ export interface FunctionMeta {
   icon: string;
   inputModality?: string;
   hint: string;
+  /** 'roadmap' = função ainda sem CLI/endpoint; a UI mostra "Em breve". */
+  status?: 'ready' | 'roadmap';
 }
 export interface CapabilityMatrix {
   functions: FunctionMeta[];

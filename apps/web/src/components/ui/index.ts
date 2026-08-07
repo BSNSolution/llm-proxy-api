@@ -8,3 +8,4 @@ export { PageHeader, EmptyState, Skeleton } from './page-header.js';
 export { Pagination, usePagination } from './pagination.js';
 export { Tooltip, HintTip } from './tooltip.js';
 export { Modal } from './modal.js';
+export { Kpi } from './kpi.js';

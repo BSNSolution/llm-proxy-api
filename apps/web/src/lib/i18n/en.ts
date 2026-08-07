@@ -216,6 +216,8 @@ export const en: Record<string, string> = {
   "router.modeloPlaceholder": "model (optional, e.g. opus / sonnet / default)",
   "router.naoDefinir": "— do not set —",
   "router.nenhumaSuporta": "No LLM supports it",
+  "router.emBreve": "Coming soon",
+  "router.emBreve.hint": "No CLI fulfils this function yet, and there's no dedicated endpoint. Shown here as roadmap.",
   "router.roteado": "→ routed in this config",
   "router.salvar": "Save workflow",
   "router.semRegra": "→ no rule (falls back to the key default)",

@@ -4,6 +4,7 @@ import { Workflow, Sparkles, Check, Wand2, AlertCircle } from 'lucide-react';
 import { api, type CapabilityMatrix, type RouterView, type ComboView, type FunctionMeta } from '../lib/api.js';
 import { Button } from '../components/ui/button.js';
 import { Card } from '../components/ui/card.js';
+import { Badge } from '../components/ui/badge.js';
 import { Select } from '../components/ui/select.js';
 import { PageHeader, EmptyState } from '../components/ui/page-header.js';
 import { HintTip } from '../components/ui/tooltip.js';
@@ -123,7 +124,7 @@ export function RouterPage() {
   const noClis = available.length === 0;
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <main className="flex flex-col gap-6">
       <PageHeader
         title={t('router.titulo')}
         subtitle={t('router.subtitulo')}
@@ -140,9 +141,9 @@ export function RouterPage() {
           {t('router.vazio.desc')}
         </EmptyState>
       ) : (
-        <>
+        <div className="flex flex-col gap-6">
           {/* Como usar */}
-          <Card className="mb-5 border-primary/25 bg-primary/[0.04]">
+          <Card className="border-primary/25 bg-primary/[0.04]">
             <div className="flex items-start gap-3">
               <Wand2 size={18} className="mt-0.5 shrink-0 text-primary" />
               <div className="text-sm text-fg-muted">
@@ -161,12 +162,13 @@ export function RouterPage() {
 
           {/* Grupos de funções */}
           {(['gerar', 'analisar', 'especial'] as const).map((group) => (
-            <section key={group} className="mb-6">
+            <section key={group}>
               <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
                 {t('router.grupo.' + group)}
               </h3>
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {grouped[group]?.map((fn) => {
+                  const roadmap = fn.status === 'roadmap';
                   const clis = clisFor(fn.slug);
                   const draft = drafts[fn.slug] ?? { target: '', model: '' };
                   const unsupported = clis.length === 0;
@@ -184,22 +186,27 @@ export function RouterPage() {
                     <div
                       key={fn.slug}
                       className={cn(
-                        'rounded-xl border border-border bg-surface-2/40 p-3.5 transition-colors',
-                        draft.target && 'border-primary/30 bg-primary/[0.03]',
-                        unsupported && 'opacity-55',
+                        'rounded-lg border border-border bg-surface-2/40 p-3.5 transition-colors',
+                        draft.target && !roadmap && 'border-primary/30 bg-primary/[0.03]',
+                        (unsupported || roadmap) && 'opacity-55',
                       )}
                     >
                       <div className="mb-2.5 flex items-center gap-2">
                         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-surface-3 text-fg-muted">
                           <FnIcon name={fn.icon} />
                         </span>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 text-sm font-medium">
                             {/* label/hint vêm da API em PT; traduzimos pela slug (cap.<slug>). */}
                             {t('cap.' + fn.slug)}
                             <HintTip content={t('cap.' + fn.slug + '.hint')} />
+                            {roadmap && (
+                              <Badge tone="neutral" className="ml-auto">
+                                {t('router.emBreve')}
+                              </Badge>
+                            )}
                           </div>
-                          {chosenCli && (
+                          {chosenCli && !roadmap && (
                             <div className="mt-0.5 flex items-center gap-1 text-xs text-primary">
                               <CliIcon kind={chosenCli} size={12} /> {CLI_LABELS[chosenCli] ?? chosenCli}
                             </div>
@@ -207,19 +214,25 @@ export function RouterPage() {
                         </div>
                       </div>
 
-                      <Select
-                        value={draft.target}
-                        onChange={(v) => setDraft(fn.slug, { target: v })}
-                        options={options}
-                        disabled={unsupported}
-                      />
-                      {chosenCli && (
-                        <input
-                          value={draft.model}
-                          onChange={(e) => setDraft(fn.slug, { model: e.target.value })}
-                          placeholder={t('router.modeloPlaceholder')}
-                          className="mt-2 w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-fg placeholder:text-fg-subtle focus:border-primary/50 focus:outline-none"
-                        />
+                      {roadmap ? (
+                        <p className="text-xs text-fg-subtle">{t('router.emBreve.hint')}</p>
+                      ) : (
+                        <>
+                          <Select
+                            value={draft.target}
+                            onChange={(v) => setDraft(fn.slug, { target: v })}
+                            options={options}
+                            disabled={unsupported}
+                          />
+                          {chosenCli && (
+                            <input
+                              value={draft.model}
+                              onChange={(e) => setDraft(fn.slug, { model: e.target.value })}
+                              placeholder={t('router.modeloPlaceholder')}
+                              className="mt-2 w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-fg placeholder:text-fg-subtle focus:border-primary/50 focus:outline-none"
+                            />
+                          )}
+                        </>
                       )}
                     </div>
                   );
@@ -229,7 +242,7 @@ export function RouterPage() {
           ))}
 
           {/* Teste o detector */}
-          <Card className="mt-6">
+          <Card>
             <div className="mb-2 flex items-center gap-1.5 text-sm font-medium">
               <Sparkles size={15} className="text-primary" />
               {t('router.testar')}
@@ -262,8 +275,8 @@ export function RouterPage() {
               </div>
             )}
           </Card>
-        </>
+        </div>
       )}
-    </div>
+    </main>
   );
 }

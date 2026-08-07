@@ -7,6 +7,8 @@ import { Badge } from '../components/ui/badge.js';
 import { Field, Input } from '../components/ui/input.js';
 import { Select } from '../components/ui/select.js';
 import { Switch } from '../components/ui/toggle.js';
+import { Modal } from '../components/ui/modal.js';
+import { Kpi } from '../components/ui/kpi.js';
 import { PageHeader, EmptyState } from '../components/ui/page-header.js';
 import { Pagination, usePagination } from '../components/ui/pagination.js';
 import { HintTip, Tooltip } from '../components/ui/tooltip.js';
@@ -406,15 +408,6 @@ function RowActions({
   );
 }
 
-function Kpi({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-lg border border-border bg-surface-2/60 p-4">
-      <p className="text-2xs font-medium uppercase tracking-wider text-fg-subtle">{label}</p>
-      <p className="mt-1 font-mono text-[24px] font-semibold tracking-tight text-fg">{value}</p>
-    </div>
-  );
-}
-
 function UrlRow({ label, url }: { label: string; url: string }) {
   const t = useT();
   const [copied, setCopied] = useState(false);
@@ -434,31 +427,6 @@ function UrlRow({ label, url }: { label: string; url: string }) {
         >
           {copied ? <Check size={15} className="text-ok" /> : <Copy size={15} />}
         </button>
-      </div>
-    </div>
-  );
-}
-
-function Modal({
-  title,
-  children,
-  onClose,
-}: {
-  title: string;
-  children: React.ReactNode;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="animate-fade-in-up w-full max-w-md rounded-xl border border-border-strong bg-surface-2 p-5 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="mb-3 text-[15px] font-semibold">{title}</h3>
-        {children}
       </div>
     </div>
   );

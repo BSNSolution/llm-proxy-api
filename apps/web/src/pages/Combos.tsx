@@ -46,7 +46,7 @@ export function CombosPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <main className="flex flex-col gap-6">
       <PageHeader
         title={t('combos.title')}
         subtitle={t('combos.subtitle')}
@@ -58,7 +58,7 @@ export function CombosPage() {
       />
 
       {/* ── Fontes HTTP ── */}
-      <section className="mb-8">
+      <section>
         <h3 className="mb-2.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
           <Server size={13} /> {t('combos.http.heading')}
           <HintTip content={t('combos.http.headingHint')} />
@@ -67,7 +67,7 @@ export function CombosPage() {
           {HTTP_PROVIDERS.map((p) => {
             const cfg = providers.find((x) => x.provider === p.id);
             return (
-              <div key={p.id} className="rounded-xl border border-border bg-surface-2/40 p-3.5">
+              <div key={p.id} className="rounded-lg border border-border bg-surface-2/40 p-3.5">
                 <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
                   {p.label}
                   <HintTip content={t(p.hintKey)} />
@@ -181,7 +181,7 @@ export function CombosPage() {
           }}
         />
       )}
-    </div>
+    </main>
   );
 }
 

@@ -216,6 +216,8 @@ export const pt: Record<string, string> = {
   "router.modeloPlaceholder": "modelo (opcional, ex.: opus / sonnet / default)",
   "router.naoDefinir": "— não definir —",
   "router.nenhumaSuporta": "Nenhuma LLM suporta",
+  "router.emBreve": "Em breve",
+  "router.emBreve.hint": "Ainda não há CLI que cumpra esta função nem endpoint dedicado. Fica visível no roadmap.",
   "router.roteado": "→ roteado nesta config",
   "router.salvar": "Salvar workflow",
   "router.semRegra": "→ sem regra (cai no padrão da key)",
