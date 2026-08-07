@@ -1,4 +1,4 @@
-import type { FunctionCapability } from '@llm-proxy/shared-types';
+import { type FunctionCapability, isRoadmapCapability } from '@llm-proxy/shared-types';
 
 /**
  * Detecta a capacidade FUNCIONAL de um request (OpenAI/Anthropic-like) para o
@@ -95,6 +95,17 @@ const RE_ANALISE = /(analis|avali|revis|explique|explica|explain|review|entenda|
  * pra decidir (o chamador cai no default do router / fluxo normal).
  */
 export function detectCapability(body: unknown): FunctionCapability | null {
+  const cap = detectCapabilityRaw(body);
+  // Nunca AUTO-detectar uma capacidade em roadmap (gerar-audio/vídeo, etc.): não há
+  // fonte que a cumpra, então rotear pra ela promete uma rota inexistente e cai num
+  // erro confuso ("instale/habilite a CLI"). Rebaixa pro fallback de texto — o
+  // pedido ainda é atendido pela LLB de texto (que ao menos responde algo útil).
+  // (O override explícito cap:<slug> continua podendo forçar — é escolha do dono.)
+  if (cap && isRoadmapCapability(cap)) return 'gerar-texto';
+  return cap;
+}
+
+function detectCapabilityRaw(body: unknown): FunctionCapability | null {
   // 1. Modalidade de entrada tem prioridade — o conteúdo já diz o que é.
   const modality = detectInputModality(body);
   if (modality) return modality;

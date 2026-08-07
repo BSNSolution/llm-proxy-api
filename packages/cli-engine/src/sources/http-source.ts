@@ -23,6 +23,26 @@ const DEFAULT_BASE: Record<HttpProviderKind, string> = {
   gemini: 'https://generativelanguage.googleapis.com',
 };
 
+/**
+ * Anti-SSRF em runtime (defense-in-depth). O baseUrl já é validado no cadastro
+ * (routes/http-providers.ts::isSafeBaseUrl), mas isso não cobre REDIRECT: um host
+ * cadastrado como público pode responder 3xx apontando para a metadata da nuvem
+ * (169.254.169.254), e o fetch seguiria o redirect levando a API key junto. Por
+ * isso TODO fetch de fonte HTTP usa redirect:'manual' e trata 3xx como erro —
+ * nunca segue para um destino não validado. (O vetor de DNS rebinding puro exige
+ * pinning de IP por conexão e fica como hardening residual documentado.)
+ */
+const FETCH_OPTS = { redirect: 'manual' as const };
+
+/** Lança se a resposta é um redirect (3xx) — não seguimos para destino não validado. */
+function assertNotRedirect(res: Response): void {
+  if (res.status >= 300 && res.status < 400) {
+    throw new Error(
+      `Fonte HTTP respondeu redirect ${res.status} (${res.headers.get('location') ?? '?'}) — bloqueado por segurança (anti-SSRF).`,
+    );
+  }
+}
+
 /** Monta o array de mensagens (system + history + user) no formato neutro→provider. */
 function flattenMessages(turn: CliTurn): { role: string; content: string }[] {
   const msgs: { role: string; content: string }[] = [];
@@ -79,7 +99,9 @@ async function* runAnthropic(base: string, cfg: HttpSourceConfig, turn: CliTurn,
     headers: { 'content-type': 'application/json', 'x-api-key': cfg.apiKey, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify(body),
     signal,
+    ...FETCH_OPTS,
   });
+  assertNotRedirect(res);
   if (!res.ok || !res.body) {
     yield { type: 'error', message: await errText(res) };
     yield { type: 'done', finishReason: 'error' };
@@ -107,7 +129,9 @@ async function* runOpenAi(base: string, cfg: HttpSourceConfig, turn: CliTurn, si
     headers: { 'content-type': 'application/json', authorization: `Bearer ${cfg.apiKey}` },
     body: JSON.stringify({ model: cfg.model, stream: true, stream_options: { include_usage: true }, messages }),
     signal,
+    ...FETCH_OPTS,
   });
+  assertNotRedirect(res);
   if (!res.ok || !res.body) {
     yield { type: 'error', message: await errText(res) };
     yield { type: 'done', finishReason: 'error' };
@@ -135,7 +159,9 @@ async function* runGemini(base: string, cfg: HttpSourceConfig, turn: CliTurn, si
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ contents, ...sys }),
     signal,
+    ...FETCH_OPTS,
   });
+  assertNotRedirect(res);
   if (!res.ok || !res.body) {
     yield { type: 'error', message: await errText(res) };
     yield { type: 'done', finishReason: 'error' };

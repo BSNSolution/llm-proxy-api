@@ -31,6 +31,11 @@ async function main(): Promise<void> {
     logger: { level: cfg.nodeEnv === 'development' ? 'info' : 'warn' },
     // anexos (imagens/arquivos base64) podem passar do default de 1MB
     bodyLimit: 30 * 1024 * 1024,
+    // O deploy oficial roda atrás de reverse proxy (Dokploy/Traefik/Caddy — ver
+    // deploy/*). Sem trustProxy, req.ip é o IP do proxy e o rate-limit de
+    // login/setup (services/auth-rate-limit por IP) colapsaria TODOS num único
+    // bucket. Confiar no X-Forwarded-For faz req.ip refletir o cliente real.
+    trustProxy: true,
   });
 
   // Content-type parser JSON tolerante: um POST com header application/json mas

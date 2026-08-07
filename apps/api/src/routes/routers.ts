@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '@llm-proxy/db';
-import { CLI_KINDS, FUNCTION_CAPABILITIES } from '@llm-proxy/shared-types';
+import { CLI_KINDS, FUNCTION_CAPABILITIES, isRoadmapCapability } from '@llm-proxy/shared-types';
 import { writeAudit } from '../services/audit.js';
 import { resolveOwnerId } from '../services/owner.js';
 import { detectCapability } from '../services/detect-capability.js';
@@ -18,6 +18,12 @@ const RuleInput = z
   })
   .refine((r) => r.comboId || (r.source === 'cli' ? !!r.cliKind : !!r.provider), {
     message: 'regra exige comboId, ou (cli+cliKind) ou (http+provider)',
+  })
+  // Capacidade em roadmap (gerar-áudio/vídeo, embeddings, transcrever-áudio) não
+  // tem fonte que a cumpra nem endpoint dedicado — persistir regra pra ela seria
+  // uma promessa vazia (a UI já a mostra como "Em breve", sem seletor).
+  .refine((r) => !isRoadmapCapability(r.capability), {
+    message: 'capacidade em roadmap (ainda não disponível) — não é possível criar regra para ela.',
   });
 
 const CreateRouter = z.object({

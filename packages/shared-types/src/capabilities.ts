@@ -112,6 +112,11 @@ const CLI_EXTRA_CAPABILITIES: Record<CliKind, FunctionCapability[]> = {
   continue: [],
 };
 
+/** Uma capacidade está em roadmap (sem CLI que cumpra nem endpoint dedicado)? */
+export function isRoadmapCapability(fn: FunctionCapability): boolean {
+  return FUNCTION_CAPABILITY_META[fn].status === 'roadmap';
+}
+
 /** Conjunto (Set) de funções que uma CLI cumpre. */
 export function capabilitiesForCli(kind: CliKind): Set<FunctionCapability> {
   return new Set<FunctionCapability>([...TEXT_BASE, ...(CLI_EXTRA_CAPABILITIES[kind] ?? [])]);
