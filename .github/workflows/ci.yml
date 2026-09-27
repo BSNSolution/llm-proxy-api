@@ -1,9 +1,14 @@
 name: CI
 
+# ⏸️ 27/09/2026: gatilhos automáticos PAUSADOS — cota Free do GitHub Actions da org esgotou.
+# Padrão agora: `ci:local` antes do push (ver AI/NOTES). Para reativar, troque o bloco `on:` pelo original abaixo.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
+# --- gatilhos originais ---
+# on:
+#   push:
+#     branches: [main]
+#   pull_request:
 
 jobs:
   build:
