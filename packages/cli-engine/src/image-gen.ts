@@ -1,9 +1,59 @@
 import { spawn } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { buildCliEnv } from './platform/index.js';
+
+// Onde o Codex REALMENTE salva as imagens da built-in image_gen: $CODEX_HOME/generated_images/<sessão>/exec-*.png
+// (ele IGNORA o -C/cwd para a saída da tool). Precisamos varrer aqui, não só o workdir. Bug real: antes só
+// olhávamos o workdir (que fica vazio) → pegava imagem antiga OU falhava. Ver AI/NOTES 07/08 (bsn-social).
+function codexImagesDir(): string {
+  const home = process.env.CODEX_HOME || join(homedir(), '.codex');
+  return join(home, 'generated_images');
+}
+
+// Acha o PNG/webp/jpg mais recente numa árvore (recursivo), criado/modificado em/depois de `sinceMs`.
+// `sinceMs` garante que só aceitamos a imagem DESTA geração — nunca reaproveita arquivo antigo.
+interface Candidate {
+  path: string;
+  mtime: number;
+}
+function newestImageSince(dir: string, sinceMs: number): string | null {
+  if (!existsSync(dir)) return null;
+  // coleta todos os candidatos (recursivo, até profundidade 3) e escolhe o mais recente no fim.
+  const found: Candidate[] = [];
+  const walk = (d: string, depth: number): void => {
+    if (depth > 3) return;
+    let entries: string[] = [];
+    try {
+      entries = readdirSync(d);
+    } catch {
+      return;
+    }
+    for (const name of entries) {
+      const p = join(d, name);
+      let st: ReturnType<typeof statSync>;
+      try {
+        st = statSync(p);
+      } catch {
+        continue;
+      }
+      if (st.isDirectory()) {
+        walk(p, depth + 1);
+        continue;
+      }
+      if (!/\.(png|webp|jpe?g)$/i.test(name)) continue;
+      // tolerância de 2s p/ clock skew, mas ainda ancorado no início desta geração.
+      if (st.mtimeMs < sinceMs - 2000) continue;
+      found.push({ path: p, mtime: st.mtimeMs });
+    }
+  };
+  walk(dir, 0);
+  if (found.length === 0) return null;
+  found.sort((a, b) => b.mtime - a.mtime);
+  return found[0]!.path;
+}
 
 export interface ImageGenOptions {
   /** WxH (múltiplos de 16, entre 3:1 e 1:3). Default 1024x1024. */
@@ -54,6 +104,9 @@ export async function generateImageWithCodex(
 
   const args = ['exec', '-C', workdir, '-s', 'workspace-write', '--skip-git-repo-check', instr];
 
+  // marca o instante ANTES de rodar o codex: só aceitamos imagem criada a partir daqui (nunca reaproveita antiga).
+  const startMs = Date.now();
+
   const codeExit = await new Promise<number>((resolve) => {
     const child = spawn('codex', args, {
       cwd: workdir,
@@ -74,8 +127,12 @@ export async function generateImageWithCodex(
     });
   });
 
-  // Pega o PNG gerado NESTE workdir (isolado) e move para o outPath final.
-  const generated = newestImage(workdir);
+  // Pega a imagem gerada NESTA execução. O Codex pode salvar (a) no workdir isolado (quando respeita o -C)
+  // OU (b) em $CODEX_HOME/generated_images/<sessão>/exec-*.png (o padrão real da built-in image_gen). Buscamos
+  // nos dois, sempre filtrando por mtime >= início desta geração → nunca reaproveita arquivo antigo (bug).
+  const fromWorkdir = newestImageSince(workdir, startMs);
+  const fromCodexHome = fromWorkdir ? null : newestImageSince(codexImagesDir(), startMs);
+  const generated = fromWorkdir ?? fromCodexHome;
   try {
     if (generated) {
       copyFileSync(generated, outPath);
@@ -96,19 +153,3 @@ export async function generateImageWithCodex(
   };
 }
 
-/** Acha o arquivo de imagem mais recente num diretório. */
-function newestImage(dir: string): string | null {
-  if (!existsSync(dir)) return null;
-  let best: { path: string; mtime: number } | null = null;
-  for (const name of readdirSync(dir)) {
-    if (!/\.(png|webp|jpe?g)$/i.test(name)) continue;
-    const p = join(dir, name);
-    try {
-      const m = statSync(p).mtimeMs;
-      if (!best || m > best.mtime) best = { path: p, mtime: m };
-    } catch {
-      /* ignore */
-    }
-  }
-  return best?.path ?? null;
-}
